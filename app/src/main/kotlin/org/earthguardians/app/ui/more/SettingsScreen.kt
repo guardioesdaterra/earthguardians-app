@@ -93,6 +93,7 @@ internal fun SettingsScreen(
             EgSegmentedControl(
                 options = modeOptions,
                 selectedIndex = selectedMode,
+                modifier = Modifier.fillMaxWidth(),
                 onSelect = { index ->
                     scope.launch { graph.theme.setMode(ThemeMode.entries[index]) }
                 },

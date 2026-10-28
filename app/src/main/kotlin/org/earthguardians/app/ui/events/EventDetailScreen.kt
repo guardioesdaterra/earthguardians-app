@@ -158,6 +158,7 @@ internal fun EventDetailScreen(
                         EgPrimaryButton(
                             label = "Save to calendar",
                             tone = PillTone.Green,
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 runCatching {
@@ -174,6 +175,7 @@ internal fun EventDetailScreen(
                             label = "Open page",
                             tone = PillTone.Red,
                             leading = Icons.Rounded.OpenInNew,
+                            modifier = Modifier.weight(1f),
                             onClick = { onOpenPage(event.url) },
                         )
                     }

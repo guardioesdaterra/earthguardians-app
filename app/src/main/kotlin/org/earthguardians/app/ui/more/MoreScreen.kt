@@ -24,7 +24,7 @@ import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
+import org.earthguardians.app.ui.design.EgSearchField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -94,16 +94,10 @@ internal fun MoreScreen(
                     HeaderTile(false) { openNotifications() }
                     HeaderTile(true) { openSettings() }
                 }
-                OutlinedTextField(
+                EgSearchField(
                     value = query,
                     onValueChange = { query = it },
-                    singleLine = true,
-                    placeholder = { Text("Search the whole site…", color = palette.muted, fontSize = 15.sp) },
-                    leadingIcon = {
-                        Icon(Icons.Rounded.Search, contentDescription = null, tint = palette.muted, modifier = Modifier.size(20.dp))
-                    },
-                    shape = RoundedCornerShape(18.dp),
-                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = "Search the whole site…",
                 )
             }
         }

@@ -62,8 +62,8 @@ data class EGPalette(
             onBackground = Color(0xFF050505),
             muted = Color(0xFF6E6E73), // iOS secondaryLabel gray
             outline = Color(0xFFE3E3E8),
-            glass = Color(0x14FFFFFF),
-            glassAlt = Color(0xFFF5F5F7),
+            glass = Color(0xFFF2F2F7), // iOS grouped-background fill: cards read on white
+            glassAlt = Color(0xFFF9F9FB),
             glassStroke = Color(0x24808085),
             glassHighlight = Color(0x3DFFFFFF),
             accent = Color(0xFFFF3B30), // iOS system red
@@ -78,7 +78,7 @@ data class EGPalette(
             onBackground = Color(0xFFFAFAFA),
             muted = Color(0xFF98989F),
             outline = Color(0xFF2C2C30),
-            glass = Color(0x0FFFFFFF),
+            glass = Color(0xFF1C1C1E), // iOS elevated dark fill: cards read on black
             glassAlt = Color(0xFF111114),
             glassStroke = Color(0x26FFFFFF),
             glassHighlight = Color(0x14FFFFFF),

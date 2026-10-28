@@ -1,6 +1,8 @@
 package org.earthguardians.app.ui.root
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,6 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Eco
@@ -36,6 +40,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -284,10 +290,16 @@ private fun EgBottomBar(navController: NavHostController, haptic: () -> Unit) {
     ) {
         bottomDestinations.forEach { destination ->
             val selected = currentRoute == destination.route
-            val tint = when {
-                selected -> palette.accent
-                else -> palette.muted
-            }
+            val tint by animateColorAsState(
+                targetValue = if (selected) palette.accent else palette.muted,
+                animationSpec = tween(220),
+                label = "tabTint",
+            )
+            val iconScale by animateFloatAsState(
+                targetValue = if (selected) 1.14f else 1f,
+                animationSpec = tween(220),
+                label = "tabScale",
+            )
             val interaction = remember { MutableInteractionSource() }
             Column(
                 modifier = Modifier
@@ -305,13 +317,28 @@ private fun EgBottomBar(navController: NavHostController, haptic: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Icon(imageVector = destination.icon, contentDescription = destination.label, tint = tint, modifier = Modifier.height(22.dp))
+                Icon(
+                    imageVector = destination.icon,
+                    contentDescription = destination.label,
+                    tint = tint,
+                    modifier = Modifier
+                        .height(22.dp)
+                        .scale(iconScale),
+                )
                 Text(
                     text = destination.label,
                     color = tint,
                     fontSize = 10.sp,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                     maxLines = 1,
+                )
+                // iOS-style selection indicator: a small red pip under the active tab.
+                Box(
+                    modifier = Modifier
+                        .padding(top = 3.dp)
+                        .size(width = if (selected) 16.dp else 0.dp, height = 2.dp)
+                        .clip(CircleShape)
+                        .background(if (selected) palette.accent else Color.Transparent),
                 )
             }
         }

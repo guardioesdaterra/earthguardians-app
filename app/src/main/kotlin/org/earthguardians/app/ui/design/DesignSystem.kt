@@ -26,7 +26,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -260,6 +263,42 @@ fun EgSegmentedControl(
 /** Apple-style pill button tones. Red = urgent action, Green = nature/positive. */
 enum class PillTone { Neutral, Red, Green }
 
+/** Shared iOS-style search field — theme-aware, ghost outline, red cursor. */
+@Composable
+fun EgSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+) {
+    val palette = egPalette
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = true,
+        placeholder = { Text(placeholder, color = palette.muted, fontSize = 15.sp) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Rounded.Search,
+                contentDescription = null,
+                tint = palette.muted,
+                modifier = Modifier.size(20.dp),
+            )
+        },
+        shape = RoundedCornerShape(EgRadius.pill),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = palette.eco,
+            unfocusedBorderColor = palette.outline,
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            cursorColor = palette.accent,
+            focusedTextColor = palette.onBackground,
+            unfocusedTextColor = palette.onBackground,
+        ),
+        modifier = modifier.fillMaxWidth(),
+    )
+}
+
 @Composable
 fun EgPrimaryButton(
     label: String,
@@ -288,7 +327,7 @@ fun EgPrimaryButton(
             .egPressScale(interaction)
             .padding(horizontal = 22.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
         if (leading != null) {
             Icon(imageVector = leading, contentDescription = null, tint = fg, modifier = Modifier.size(18.dp))

@@ -2,6 +2,7 @@ package org.earthguardians.app.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +62,7 @@ import org.earthguardians.app.ui.design.PillTone
 import org.earthguardians.app.ui.design.SectionTitle
 import org.earthguardians.app.ui.design.ShimmerCard
 import org.earthguardians.app.ui.design.StatTile
+import org.earthguardians.app.ui.design.egPressScale
 import org.earthguardians.app.ui.root.Routes
 import org.earthguardians.app.ui.theme.egPalette
 
@@ -228,20 +231,22 @@ internal fun HomeScreen(
             }
         }
 
-        // ── Impact stats ───────────────────────────────────────────
+        // ── Impact stats (2×2 bento — four skinny columns crushed the labels) ──
         item {
             SectionTitle(title = "The receipts")
             Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                StatTile(value = "1M+", label = "people impacted", tone = PillTone.Green, modifier = Modifier.weight(1f))
-                StatTile(value = "20K+", label = "trees planted", tone = PillTone.Green, modifier = Modifier.weight(1f))
-                StatTile(value = "100%", label = "youth-led", tone = PillTone.Red, modifier = Modifier.weight(1f))
-                StatTile(value = "94%", label = "youth & BIPOC staff", tone = PillTone.Neutral, modifier = Modifier.weight(1f))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    StatTile(value = "1M+", label = "people impacted", tone = PillTone.Green, modifier = Modifier.weight(1f))
+                    StatTile(value = "20K+", label = "trees planted", tone = PillTone.Green, modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    StatTile(value = "100%", label = "youth-led", tone = PillTone.Red, modifier = Modifier.weight(1f))
+                    StatTile(value = "94%", label = "youth & BIPOC staff", tone = PillTone.Neutral, modifier = Modifier.weight(1f))
+                }
             }
         }
 
@@ -323,19 +328,19 @@ private fun HeaderIconButton(
     onClick: () -> Unit,
 ) {
     val palette = egPalette
+    val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
             .background(palette.glass)
-            .egTap { onClick() },
+            .clickable(interactionSource = interaction, indication = null) { onClick() }
+            .egPressScale(interaction),
         contentAlignment = Alignment.Center,
     ) {
         Icon(imageVector = icon, contentDescription = label, tint = palette.onBackground, modifier = Modifier.size(19.dp))
     }
 }
-
-private fun Modifier.egTap(onClick: () -> Unit): Modifier = this.clickable { onClick() }
 
 /** Bento tile wired to a concrete catalog section. */
 @Composable
@@ -374,12 +379,14 @@ private fun EventCarouselCard(
 ) {
     val palette = egPalette
     val shape = RoundedCornerShape(EgRadius.card)
+    val interaction = remember { MutableInteractionSource() }
     Column(
         modifier = Modifier
             .width(240.dp)
             .clip(shape)
             .background(palette.glass, shape)
-            .egTap(onClick)
+            .clickable(interactionSource = interaction, indication = null) { onClick() }
+            .egPressScale(interaction)
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

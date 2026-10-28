@@ -17,12 +17,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Event
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,6 +40,7 @@ import org.earthguardians.app.data.model.FeedUiState
 import org.earthguardians.app.data.parse.RssParser
 import org.earthguardians.app.graph.AppGraph
 import org.earthguardians.app.ui.common.EgImage
+import org.earthguardians.app.ui.design.EgSearchField
 import org.earthguardians.app.ui.design.EgPill
 import org.earthguardians.app.ui.design.EmptyState
 import org.earthguardians.app.ui.design.FailedState
@@ -77,18 +74,10 @@ internal fun EventsScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             LargeTitle(title = "Events", subtitle = "Every crew gathering, live from the site feed.")
-            OutlinedTextField(
+            EgSearchField(
                 value = query,
                 onValueChange = { query = it },
-                singleLine = true,
-                placeholder = {
-                    Text("Search events…", color = palette.muted, fontSize = 15.sp)
-                },
-                leadingIcon = {
-                    Icon(imageVector = Icons.Rounded.Search, contentDescription = null, tint = palette.muted, modifier = Modifier.size(20.dp))
-                },
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.fillMaxWidth(),
+                placeholder = "Search events…",
             )
         }
 

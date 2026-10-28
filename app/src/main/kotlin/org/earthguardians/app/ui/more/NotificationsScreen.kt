@@ -120,6 +120,14 @@ internal fun NotificationsScreen(
                 items(items.size) { index ->
                     val record = items[index]
                     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp, onClick = {
+                        // iOS behavior: tapping a row opens it and clears its unread dot.
+                        if (!record.read) {
+                            scope.launch {
+                                graph.prefs.saveNotifications(items.map {
+                                    if (it.id == record.id) it.copy(read = true) else it
+                                })
+                            }
+                        }
                         graph.routeBus.postRoute(record.route)
                     }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {

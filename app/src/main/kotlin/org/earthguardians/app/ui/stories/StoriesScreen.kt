@@ -19,16 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Book
 import androidx.compose.material.icons.rounded.OpenInNew
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -52,6 +49,7 @@ import org.earthguardians.app.data.model.EgPost
 import org.earthguardians.app.data.model.FeedUiState
 import org.earthguardians.app.graph.AppGraph
 import org.earthguardians.app.ui.common.PostRowCard
+import org.earthguardians.app.ui.design.EgSearchField
 import org.earthguardians.app.ui.design.EmptyState
 import org.earthguardians.app.ui.design.FailedState
 import org.earthguardians.app.ui.design.LargeTitle
@@ -82,21 +80,10 @@ internal fun StoriesScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             LargeTitle(title = "Stories", subtitle = "Dispatches from the Earth Guardian blog.")
-            OutlinedTextField(
+            EgSearchField(
                 value = query,
                 onValueChange = { query = it },
-                singleLine = true,
-                placeholder = { Text("Search stories…", color = palette.muted, fontSize = 15.sp) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Rounded.Search,
-                        contentDescription = null,
-                        tint = palette.muted,
-                        modifier = Modifier.size(20.dp),
-                    )
-                },
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.fillMaxWidth(),
+                placeholder = "Search stories…",
             )
         }
 

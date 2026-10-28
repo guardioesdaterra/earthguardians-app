@@ -5,6 +5,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -242,7 +245,7 @@ internal fun OnboardingScreen(
             }
         }
 
-        // Dots
+        // Dots — springy iOS pill that stretches and ignites in red
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -251,17 +254,21 @@ internal fun OnboardingScreen(
         ) {
             repeat(slides.size) { index ->
                 val active = pagerState.currentPage == index
+                val dotWidth by animateDpAsState(
+                    targetValue = if (active) 22.dp else 6.dp,
+                    animationSpec = tween(220),
+                    label = "onbDotWidth",
+                )
+                val dotColor by animateColorAsState(
+                    targetValue = if (active) palette.accent else palette.outline,
+                    animationSpec = tween(220),
+                    label = "onbDotColor",
+                )
                 Box(
                     modifier = Modifier
+                        .size(width = dotWidth, height = 6.dp)
                         .clip(CircleShape)
-                        .background(
-                            when {
-                                active -> palette.accent
-                                else -> palette.outline
-                            },
-                            CircleShape,
-                        )
-                        .size(width = if (active) 22.dp else 6.dp, height = 6.dp),
+                        .background(dotColor, CircleShape),
                 )
             }
         }
