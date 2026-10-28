@@ -36,7 +36,10 @@ object EgText {
     /** Entity-only decode (tags preserved) for raw CDATA text collected by the parser. */
     fun decodeFeedEntities(raw: String?): String {
         if (raw == null) return ""
-        var out = raw
+        // Explicit String type: the forEach lambda captures `out` and mutates
+        // it, and captured vars are seen with their declared type — inferring
+        // `String?` from the initializer would make `out.replace` illegal there.
+        var out: String = raw
         entities.forEach { (entity, replacement) -> out = out.replace(entity, replacement) }
         return out
     }

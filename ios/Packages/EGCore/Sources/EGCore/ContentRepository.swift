@@ -165,10 +165,17 @@ public final class ContentRepository: ObservableObject {
     }
 
     /// Event URLs look like /events/2025/6/14/project-grant-summit — parse the date.
+    /// Absolute links share the shape after the "events" segment, so anchor there
+    /// instead of using host-sensitive fixed indices ("https://host/events/…"
+    /// shifts segments by two).
     static func dateFromEventSlug(_ url: String) -> Date? {
         let noQuery = String(url.split(separator: "?", maxSplits: 1).first ?? Substring())
         let segments = noQuery.split(separator: "/").map(String.init)
-        guard segments.count >= 4, let year = Int(segments[1]), let month = Int(segments[2]), let day = Int(segments[3]) else { return nil }
+        guard let eventsIdx = segments.firstIndex(of: "events"),
+              segments.count >= eventsIdx + 4,
+              let year = Int(segments[eventsIdx + 1]),
+              let month = Int(segments[eventsIdx + 2]),
+              let day = Int(segments[eventsIdx + 3]) else { return nil }
         var components = DateComponents()
         components.year = year; components.month = month; components.day = day
         return Calendar.gregorianUTCFallback.date(from: components)
