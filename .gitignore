@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+app/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local build/toolchain artifacts — builds happen on CI only (see AGENTS.md)
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Secrets — never commit
+*.jks
+*.keystore
+keystore.properties
+/secrets/
+google-services.json
+
+# Logs
+*.log

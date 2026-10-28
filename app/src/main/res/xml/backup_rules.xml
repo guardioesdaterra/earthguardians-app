@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Keep tiny, non-sensitive prefs only; caches rebuild themselves. -->
+    <exclude domain="file" path="eg_feed_cache.json" />
+    <exclude domain="file" path="eg_sitemap_cache.json" />
+</full-backup-content>

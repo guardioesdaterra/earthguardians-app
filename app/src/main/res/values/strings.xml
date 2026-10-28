@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Earth Guardians</string>
+
+    <!-- Notification channels -->
+    <string name="channel_events">Events</string>
+    <string name="channel_events_desc">New crew events, trainings and gatherings</string>
+    <string name="channel_stories">Stories</string>
+    <string name="channel_stories_desc">New posts from the Earth Guardian blog</string>
+    <string name="channel_actions">Actions</string>
+    <string name="channel_actions_desc">Urgent take-action alerts</string>
+
+    <!-- Notification copy -->
+    <string name="notif_event_title">New event from Earth Guardians</string>
+    <string name="notif_story_title">New story on the blog</string>
+    <string name="notif_test_title">You\'re all set 🌍</string>
+    <string name="notif_test_message">This is an example Earth Guardians alert — like this, but usually with more trees.</string>
+
+    <!-- App shortcuts -->
+    <string name="shortcut_events">Events</string>
+    <string name="shortcut_events_long">Browse crew events</string>
+    <string name="shortcut_stories">Stories</string>
+    <string name="shortcut_stories_long">Read the Earth Guardian blog</string>
+    <string name="shortcut_donate">Donate</string>
+    <string name="shortcut_donate_long">Support youth climate work</string>
+</resources>

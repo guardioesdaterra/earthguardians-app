@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Earth Guardians brand colors (app resources; the in-app palette lives in Compose) -->
+<resources>
+    <color name="eg_black">#000000</color>
+    <color name="eg_white">#FFFFFF</color>
+    <color name="eg_red">#FF3B30</color>
+    <color name="eg_green">#34C759</color>
+    <color name="launcher_background">#000000</color>
+    <color name="eg_background">#FFFFFF</color>
+</resources>

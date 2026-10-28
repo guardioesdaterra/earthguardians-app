@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press quick actions (iOS-style app shortcuts). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="events"
+        android:enabled="true"
+        android:icon="@drawable/ic_stat_eg"
+        android:shortcutShortLabel="@string/shortcut_events"
+        android:shortcutLongLabel="@string/shortcut_events_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="earthguardians://events"
+            android:targetPackage="org.earthguardians.app"
+            android:targetClass="org.earthguardians.app.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="stories"
+        android:enabled="true"
+        android:icon="@drawable/ic_stat_eg"
+        android:shortcutShortLabel="@string/shortcut_stories"
+        android:shortcutLongLabel="@string/shortcut_stories_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="earthguardians://stories"
+            android:targetPackage="org.earthguardians.app"
+            android:targetClass="org.earthguardians.app.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="donate"
+        android:enabled="true"
+        android:icon="@drawable/ic_stat_eg"
+        android:shortcutShortLabel="@string/shortcut_donate"
+        android:shortcutLongLabel="@string/shortcut_donate_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate"
+            android:targetPackage="org.earthguardians.app"
+            android:targetClass="org.earthguardians.app.MainActivity" />
+    </shortcut>
+</shortcuts>

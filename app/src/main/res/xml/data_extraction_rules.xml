@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="eg_feed_cache.json" />
+        <exclude domain="file" path="eg_sitemap_cache.json" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="eg_feed_cache.json" />
+        <exclude domain="file" path="eg_sitemap_cache.json" />
+    </device-transfer>
+</data-extraction-rules>
