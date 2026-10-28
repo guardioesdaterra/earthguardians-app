@@ -4,15 +4,19 @@ options:
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
-  # iOS support tiers — CI archives each Release config into its own IPA:
-  #   Release        → iOS 16.0 floor (widest compatibility)
-  #   Release-iOS18  → iOS 18.0, enables EG_MODERN kit (iOS 17/18 SwiftUI)
-  #   Release-iOS26  → iOS 26.0, enables EG_LATEST kit (Liquid Glass, iOS 26 SDK)
-  configs:
-    Debug: debug
-    Release: release
-    Release-iOS18: release
-    Release-iOS26: release
+
+# iOS support tiers — CI archives each Release config into its own IPA:
+#   Release        → iOS 16.0 floor (widest compatibility)
+#   Release-iOS18  → iOS 18.0, enables EG_MODERN kit (iOS 17/18 SwiftUI)
+#   Release-iOS26  → iOS 26.0, enables EG_LATEST kit (Liquid Glass, iOS 26 SDK)
+# Root-level `configs:` — current XcodeGen parses project configurations from
+# the project root; an options.configs block is silently ignored, which made
+# every tiered settings key fail spec validation.
+configs:
+  Debug: debug
+  Release: release
+  Release-iOS18: release
+  Release-iOS26: release
 
 packages:
   EGCore:
