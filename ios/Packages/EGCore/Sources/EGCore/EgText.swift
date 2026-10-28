@@ -5,7 +5,9 @@ public enum EgText {
 
     private static let entities = [
         "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": "\"",
-        "&#39;": "'", "&apos;": "'", "&nbsp;": " ",
+        // &apos; is XML syntax, not an HTML entity, so it is dropped —
+        // Squarespace feed text writes apostrophes as &#39; (mirrors Kotlin).
+        "&#39;": "'", "&apos;": "", "&nbsp;": " ",
     ]
 
     /// Decodes the handful of entities Squarespace feed text uses, keeping tags intact.
@@ -19,9 +21,12 @@ public enum EgText {
     public static func fromHtml(_ raw: String?) -> String {
         guard let raw = raw, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return "" }
         var out = decodeFeedEntities(raw)
-        // Strip tags.
-        if let regex = try? NSRegularExpression(pattern: "<[^>]*>") {
-            out = regex.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: " ")
+        // Strip tags AFTER decoding, mirroring the Kotlin twin: letter-anchored
+        // so decoded plain-text '<'/'>' can't form a "tag", and with an empty
+        // template so word gluing is owned by the whitespace collapse
+        // ("<p>Hello&nbsp;<b>world</b>!</p>" must read "Hello world!").
+        if let regex = try? NSRegularExpression(pattern: "</?[A-Za-z][^>]*>") {
+            out = regex.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
         }
         // Collapse whitespace.
         if let regex = try? NSRegularExpression(pattern: "\\s+") {
