@@ -266,7 +266,11 @@ jobs:
         run: bash .github/scripts/ios-screenshots.sh
 
       - name: Install Pillow (summary renderer)
-        run: python3 -m pip install --user --quiet pillow || python3 -m pip3 install --user --quiet pillow
+        # macOS runners manage python3 with PEP 668 (externally-managed
+        # environment), so a --break-system-packages fallback is mandatory.
+        run: |
+          python3 -m pip install --user --quiet pillow \
+            || python3 -m pip install --break-system-packages --user --quiet pillow
 
       - name: Render screenshots into the run summary
         run: python3 .github/scripts/render_summary.py "iOS — main screens" shots

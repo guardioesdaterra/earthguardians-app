@@ -17,6 +17,9 @@ struct EventsEntry: TimelineEntry {
 }
 
 struct WidgetEvent: Identifiable, Codable {
+    // URL is the natural identity — unique per feed item. Computed so the
+    // synthesized Codable payload stays exactly (title, url, date).
+    var id: String { url }
     let title: String
     let url: String
     let date: Date?
@@ -80,7 +83,9 @@ struct EventsProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (EventsEntry) -> Void) {
-        if context.isPreview || ProcessInfo.processInfo.isRunningTests {
+        // XCTest-injected env var — a portable replacement for the test
+        // detection the snapshots use to elide the network fetch.
+        if context.isPreview || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             completion(EventsEntry(date: .now, events: [], isPlaceholder: true))
             return
         }
