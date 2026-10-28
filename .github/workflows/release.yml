@@ -104,7 +104,8 @@ jobs:
 
       - name: Generate Xcode project
         working-directory: ios
-        run: "$XGEN" generate
+        run: |
+          "$XGEN" generate
 
       - name: Archive app + widget (${{ matrix.config }}, unsigned)
         working-directory: ios

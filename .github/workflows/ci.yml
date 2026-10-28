@@ -147,7 +147,8 @@ jobs:
 
       - name: Generate Xcode project from project.yml
         working-directory: ios
-        run: "$XGEN" generate
+        run: |
+          "$XGEN" generate
 
       - name: Archive app + widget (${{ matrix.config }}, unsigned)
         working-directory: ios
@@ -252,7 +253,8 @@ jobs:
 
       - name: Generate Xcode project from project.yml
         working-directory: ios
-        run: "$XGEN" generate
+        run: |
+          "$XGEN" generate
 
       - name: Build + boot + capture main screens
         run: bash .github/scripts/ios-screenshots.sh
