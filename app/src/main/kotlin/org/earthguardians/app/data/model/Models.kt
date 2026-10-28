@@ -70,6 +70,7 @@ enum class SectionAccent { Neutral, Red, Green }
 /** Which part of the iOS-style bento the section belongs to. */
 enum class SectionGroup(val title: String) {
     About("Who We Are"),
+    People("Our People"),
     Involve("Get Involved"),
     Explore("Programs & Maps"),
     Resources("Resources"),

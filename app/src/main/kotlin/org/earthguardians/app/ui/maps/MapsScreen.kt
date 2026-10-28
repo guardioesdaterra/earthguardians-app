@@ -144,6 +144,15 @@ private fun AtlasTab(openUrl: (String) -> Unit) {
         }
         item {
             MapEntryCard(
+                title = "Grant Map",
+                subtitle = "Micro-grants funding crew projects",
+                accent = PillTone.Green,
+                path = "eg-grants",
+                openUrl = openUrl,
+            )
+        }
+        item {
+            MapEntryCard(
                 title = "Our Programs",
                 subtitle = "Programs, grants and trainings overview",
                 accent = PillTone.Neutral,

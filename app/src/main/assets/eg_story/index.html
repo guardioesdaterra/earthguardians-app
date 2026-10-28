@@ -69,7 +69,7 @@
 <div id="app"></div>
 
 <script type="module">
-  import { createApp, ref, computed, onMounted, nextTick, defineComponent, createApp as _ca } from 'vue';
+  import { createApp, ref, computed, onMounted, nextTick, defineComponent } from 'vue';
   import {
     useStorage,
     useTitle,
@@ -142,7 +142,7 @@
       function load(payload) {
         article.value = payload;
         isDark.value = !!payload.dark;
-        useTitle(`EG $\u00b7 ${payload.title || 'Story'}`);
+        useTitle(`EG · ${payload.title || 'Story'}`);
         enrichImages();
       }
 

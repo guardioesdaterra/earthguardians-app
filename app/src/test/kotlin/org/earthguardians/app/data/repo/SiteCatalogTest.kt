@@ -74,4 +74,23 @@ class SiteCatalogTest {
         assertEquals("100%", SiteCatalog.Impact.YOUTH_LED)
         assertEquals("94%", SiteCatalog.Impact.YOUTH_STAFF)
     }
+
+    @Test
+    fun `dead site pages are never linked`() {
+        // /youth-councils and /regional-directors 404 on the live site (checked
+        // Oct 2026); the real pages are the profile sub-pages and eg-team.
+        assertEquals(null, SiteCatalog.byPath("youth-councils"))
+        assertEquals(null, SiteCatalog.byPath("regional-directors"))
+    }
+
+    @Test
+    fun `our people group carries leadership and speaker profiles`() {
+        val people = SiteCatalog.sections.filter { it.group == SectionGroup.People }
+        assertTrue("expected the full people roster", people.size >= 10)
+        assertTrue(people.any { it.path == "tyler-massias" })
+        assertTrue(people.any { it.path == "catherine-mongella-speakersbureau" })
+        assertTrue(people.any { it.path == "youth-councils/nina-berglund" })
+        // Sub-collection profile pages must keep their folder prefix.
+        assertTrue(people.any { it.url.contains("/youth-councils/") })
+    }
 }

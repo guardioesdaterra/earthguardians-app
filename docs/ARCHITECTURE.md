@@ -78,22 +78,31 @@ hand-translated to Compose.
 
 ### Curated family destinations (themed WebView)
 
-`SiteCatalog` carries the real site paths, verified against the live sitemap:
+`SiteCatalog` carries the real site paths — every entry verified live (Oct 2026),
+including the "Our People" director/speaker profile pages:
 
 - **Who We Are** — `our-story`, `eg-team`, `eg-impact`, `founders`,
-  `board-of-directors`, `regional-directors`, `jobs`
-- **Get Involved** — `crews`, `crews-sign-up-1`, `take-action`, `donate`,
-  `become-a-member-1`, `speakers-bureau`, `booking`, `youth-councils`,
-  `regional-crew-council`, `bipoc-leadership`, `indigenous-youth-initiative`,
-  `youth-leadership-training`, `leadership-training`, `campaigns-2`,
+  `board-of-directors`, `jobs`
+- **Our People** — `catherine-mongella-speakersbureau`, `tyler-massias`,
+  `marlow`, `staff-anpao-locke`, `tony-perez-soto`, `sebi`, `moudjbath`,
+  `rejoice-speakersbureau`, plus the Youth Council profiles
+  `youth-councils/leala-pourier-speakersbureau`, `youth-councils/nina-berglund`,
+  `youth-councils/maya-lazzaro`
+- **Get Involved** — `crews`, `crews-2`, `crews-sign-up-1`, `take-action`,
+  `donate`, `become-a-member-1`, `speakers-bureau`, `booking`,
+  `speakers-bureau-training`, `can`, `regional-crew-council`,
+  `bipoc-leadership`, `indigenous-youth-initiative`,
+  `youth-leadership-training`, `leadership-training`, `campaigns-2`, `stmp`,
   `civic-engagement`, `divest-defund`, `inspire`, `birthday-pledge`,
   `jointherevolution`
-- **Programs & Maps** — `eg-maps`, `endangered-species-map`, `eg-programs`
+- **Programs & Maps** — `eg-maps`, `endangered-species-map`, `eg-grants`,
+  `eg-programs`
 - **Resources** — `eg-resources`, `eg-projectguides-toolkits`, `project-grants`,
   `sdgs`, `principles-of-environmental-justice`, `decolonization-social-equity`,
   `dictionary-of-important-terms`, `sustainable-solutions-waste-reduction`,
   `recipe-contest`
-- **More** — `contact`, `subscribe`, `privacy-policy`
+- **More** — `contact`, `subscribe`, `thank-you-for-becoming-a-giver`,
+  `privacy-policy`
 
 Any sitemap URL **not** in the catalog still opens in the themed browser
 (`Routes.section`), so the app can never render a dead end for new pages.
