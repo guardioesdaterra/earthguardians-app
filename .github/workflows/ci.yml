@@ -219,20 +219,49 @@ jobs:
           export PATH="$SDK/platform-tools:$SDK/cmdline-tools/latest/bin:$PATH"
           yes | sdkmanager --licenses > /dev/null || true
           sdkmanager --install "system-images;android-34;google_apis;x86_64" "emulator" "platform-tools" > /dev/null
+          echo "[sdk] system image / emulator / platform-tools ready"
 
           echo no | avdmanager create avd -n eg-shots -k "system-images;android-34;google_apis;x86_64" -d pixel_6
 
           "$SDK/emulator/emulator" -avd eg-shots \
             -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim \
             > /tmp/emulator.log 2>&1 &
-          adb wait-for-device
+          EMU_PID=$!
 
-          # Cold boots on CI can take ~8 min; poll rather than race.
-          for i in $(seq 1 70); do
-            boot=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n ')
-            [ "$boot" = "1" ] && break
+          # No blocking `adb wait-for-device` — a dead emulator would stall it
+          # forever. Poll instead: alive-process guard + progress heartbeat.
+          # Cold boots on CI can take ~8 min; CI cold boots also sometimes emit
+          # the device only intermittently, hence generous headroom.
+          seen_device=""
+          for i in $(seq 1 90); do
+            if ! kill -0 "$EMU_PID" 2>/dev/null; then
+              echo "emulator process died after ${i} polls — last log lines:"
+              tail -40 /tmp/emulator.log
+              exit 1
+            fi
+            dev=$(adb devices | awk '/^emulator-/{print $1; exit}')
+            if [ -n "$dev" ]; then
+              seen_device="$dev"
+              boot=$(adb -s "$dev" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n ')
+              if [ "$boot" = "1" ]; then break; fi
+            fi
+            if [ $((i % 6)) -eq 0 ]; then
+              echo "[boot] poll $i — device: ${seen_device:-none} — emulator log tail:"
+              tail -5 /tmp/emulator.log
+            fi
             sleep 10
           done
+          if [ -z "$seen_device" ]; then
+            echo "no emulator device ever registered — last log lines:"
+            tail -40 /tmp/emulator.log
+            exit 1
+          fi
+          boot=$(adb -s "$seen_device" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n ')
+          if [ "$boot" != "1" ]; then
+            echo "emulator never completed boot — last log lines:"
+            tail -40 /tmp/emulator.log
+            exit 1
+          fi
           # system_server may not accept input commands immediately after
           # boot_completed — extra airtime plus retries instead of the raw
           # keyevent that third-party runners fail on with "Broken pipe (32)".
