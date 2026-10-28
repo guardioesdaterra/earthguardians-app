@@ -295,10 +295,13 @@ jobs:
               tail -40 /tmp/emulator.log
               exit 1
             fi
-            dev=$(adb devices | awk '/^emulator-/{print $1; exit}')
+            # NB: transient adb failures (device 'offline' right after
+            # register) must not abort the poll loop — set -e would kill the
+            # whole step while the emulator is healthy and busy booting.
+            dev=$(adb devices 2>/dev/null | awk '/^emulator-/{print $1; exit}' || true)
             if [ -n "$dev" ]; then
               seen_device="$dev"
-              boot=$(adb -s "$dev" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n ')
+              boot=$(adb -s "$dev" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n ' || true)
               if [ "$boot" = "1" ]; then break; fi
             fi
             if [ $((i % 6)) -eq 0 ]; then
@@ -312,7 +315,7 @@ jobs:
             tail -40 /tmp/emulator.log
             exit 1
           fi
-          boot=$(adb -s "$seen_device" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n ')
+          boot=$(adb -s "$seen_device" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n ' || true)
           if [ "$boot" != "1" ]; then
             echo "emulator never completed boot — last log lines:"
             tail -40 /tmp/emulator.log
