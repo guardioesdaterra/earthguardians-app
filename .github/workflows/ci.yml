@@ -215,12 +215,14 @@ jobs:
       - name: Boot emulator + capture main screens
         run: |
           set -euo pipefail
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export PATH="$SDK/platform-tools:$SDK/cmdline-tools/latest/bin:$PATH"
           yes | sdkmanager --licenses > /dev/null || true
           sdkmanager --install "system-images;android-34;google_apis;x86_64" "emulator" "platform-tools" > /dev/null
 
           echo no | avdmanager create avd -n eg-shots -k "system-images;android-34;google_apis;x86_64" -d pixel_6
 
-          "$ANDROID_HOME/emulator/emulator" -avd eg-shots \
+          "$SDK/emulator/emulator" -avd eg-shots \
             -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim \
             > /tmp/emulator.log 2>&1 &
           adb wait-for-device
