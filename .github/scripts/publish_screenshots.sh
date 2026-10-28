@@ -22,7 +22,18 @@ work="${RUNNER_TEMP:-/tmp}/ci-shots-work"
 jpg_dir="${RUNNER_TEMP:-/tmp}/shots-jpg"
 rm -rf "$jpg_dir"
 mkdir -p "$jpg_dir"
-python3 - "$dir" "$jpg_dir" <<'PY'
+
+# Pillow is absent from the runners' base images — install it here so the
+# publish step doesn't depend on the (later) summary-renderer install step.
+if ! python3 -c "import PIL" >/dev/null 2>&1; then
+  python3 -m pip install --user --quiet pillow \
+    || python3 -m pip install --break-system-packages --user --quiet pillow
+fi
+
+# Conversion failure must not kill the job — exiting 0 without publishing
+# makes the summary renderer fall back to data URIs instead.
+python3 - "$dir" "$jpg_dir" <<'PY' \
+  || echo "[publish] JPG conversion failed — summary will fall back to data URIs"
 import glob, os, sys
 from PIL import Image
 src, dst = sys.argv[1], sys.argv[2]
