@@ -201,10 +201,9 @@ public final class ContentRepository: ObservableObject {
     private static let sitemapTTL: TimeInterval = 6 * 3600  // 6 hours
 }
 
-extension Optional where Wrapped == String {
+extension String {
     var nilIfBlank: String? {
-        guard let value = self else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
 }

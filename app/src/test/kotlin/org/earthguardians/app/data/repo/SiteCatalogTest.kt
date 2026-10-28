@@ -24,9 +24,8 @@ class SiteCatalogTest {
             assertTrue(section.title.isNotBlank())
             assertTrue(section.subtitle.isNotBlank())
             assertTrue(section.path.isNotBlank())
-            assertTrue("Path must not contain a leading slash: ${section.path}") {
-                !section.path.startsWith("/")
-            }
+            assertTrue("Path must not contain a leading slash: ${section.path}",
+                !section.path.startsWith("/"))
             assertEquals("${SitePaths.SITE_URL}/${section.path}", section.url)
         }
     }
