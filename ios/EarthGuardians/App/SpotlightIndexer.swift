@@ -28,7 +28,8 @@ public final class SpotlightIndexer {
                 attributeSet: attributes
             )
         }
-        try? await CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifier: Self.domain)
+        // Note the plural array parameter — deleteSearchableItems(withDomainIdentifier:) doesn't exist.
+        try? await CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifiers: [Self.domain])
         try? await CSSearchableIndex.default().indexSearchableItems(items)
     }
 }

@@ -77,4 +77,12 @@ public struct StoredNotification: Codable, Hashable, Identifiable {
         self.postedAt = postedAt
         self.read = read
     }
+
+    /// Functional "mark read" mutation used by NotificationCoordinator —
+    /// struct copy semantics without touching the Codable payload shape.
+    public func copy(read: Bool? = nil) -> StoredNotification {
+        var copy = self
+        if let read { copy.read = read }
+        return copy
+    }
 }
