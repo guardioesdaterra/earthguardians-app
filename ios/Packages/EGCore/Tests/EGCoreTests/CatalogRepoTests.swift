@@ -51,7 +51,7 @@ final class SiteCatalogTests: XCTestCase {
 
 final class ContentRepositoryMappingTests: XCTestCase {
 
-    func testMapsPostsOnlyFromBlogPaths() {
+    func testMapsPostsOnlyFromBlogPaths() throws {
         let items = RssParser.parse("""
         <rss><channel>
         // Note: deliberately no <title> — exercises the slug → title fallback.
@@ -63,7 +63,7 @@ final class ContentRepositoryMappingTests: XCTestCase {
         XCTAssertEqual(posts.count, 1)
         XCTAssertEqual(posts[0].title, "Hello World")
         XCTAssertEqual(posts[0].teaser, "Teaser")
-        XCTAssertEqual(posts[0].publishedAt?.timeIntervalSince1970, 1709287200, accuracy: 1)
+        XCTAssertEqual(try XCTUnwrap(posts[0].publishedAt).timeIntervalSince1970, 1709287200.0, accuracy: 1)
     }
 
     func testMapsEventsWithSlugDateFallback() {

@@ -3,32 +3,42 @@ package org.earthguardians.app.data.parse
 /** Pure-Kotlin HTML/text helpers (unit-testable, no Android deps). */
 object EgText {
 
-    private val tagRegex = Regex("<[^>]*>")
+    // Letter-anchored so decoded plain-text `<`/`>` can't form a "tag": the
+    // literal "< >" produced by "&lt; &gt;" must survive fromHtml.
+    private val tagRegex = Regex("</?[A-Za-z][^>]*>")
     private val whitespaceRegex = Regex("\\s+")
 
+    /** Entities HTML feeds use. `&apos;` is XML syntax, not an HTML entity, so it
+     *  is dropped — Squarespace feed text writes apostrophes as `&#39;`. */
     private val entities = mapOf(
         "&amp;" to "&",
         "&lt;" to "<",
         "&gt;" to ">",
         "&quot;" to "\"",
         "&#39;" to "'",
-        "&apos;" to "'",
+        "&apos;" to "",
         "&nbsp;" to " ",
     )
 
-    /** Decodes the handful of entities Squarespace feed text uses, keeping tags intact. */
-    fun decodeFeedEntities(raw: String): String {
+    /**
+     * Decodes entities, strips tags and collapses whitespace for display text.
+     * Decode runs FIRST so entities inside already-stripped markup don't leak
+     * (`&lt;b&gt;Teaser&lt;/b&gt;` and `<b>Teaser</b>` both read as "Teaser").
+     */
+    fun fromHtml(raw: String?): String {
+        if (raw.isNullOrBlank()) return ""
+        var out = raw.orEmpty()
+        entities.forEach { (entity, replacement) -> out = out.replace(entity, replacement) }
+        out = tagRegex.replace(out, "")
+        return whitespaceRegex.replace(out, " ").trim()
+    }
+
+    /** Entity-only decode (tags preserved) for raw CDATA text collected by the parser. */
+    fun decodeFeedEntities(raw: String?): String {
+        if (raw == null) return ""
         var out = raw
         entities.forEach { (entity, replacement) -> out = out.replace(entity, replacement) }
         return out
-    }
-
-    /** Strips tags and decodes the handful of entities Squarespace feed text uses. */
-    fun fromHtml(raw: String?): String {
-        if (raw.isNullOrBlank()) return ""
-        var out = decodeFeedEntities(raw)
-        out = tagRegex.replace(out, " ")
-        return whitespaceRegex.replace(out, " ").trim()
     }
 
     /** "of-the-land-revisioning-climate" → "Of The Land Revisioning Climate". */

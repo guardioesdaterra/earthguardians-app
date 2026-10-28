@@ -3,7 +3,7 @@ import XCTest
 
 final class RssParserTests: XCTestCase {
 
-    func testParsesBasicItemsWithCDATAContent() {
+    func testParsesBasicItemsWithCDATAContent() throws {
         let xml = """
         <?xml version="1.0" encoding="UTF-8"?>
         <rss xmlns:media="http://search.yahoo.com/mrss/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
@@ -31,7 +31,7 @@ final class RssParserTests: XCTestCase {
 
         let date = RssParser.parsePubDate(item.pubDate)
         XCTAssertNotNil(date)
-        XCTAssertEqual(date?.timeIntervalSince1970, 1709405100, accuracy: 1)
+        XCTAssertEqual(try XCTUnwrap(date).timeIntervalSince1970, 1709405100.0, accuracy: 1)
     }
 
     func testEnclosureImageFallbackAndNoCDATAText() {
