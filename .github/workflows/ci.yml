@@ -202,6 +202,9 @@ jobs:
     # Non-blocking on purpose: best-effort captures — a flaky emulator must
     # never hold the pipeline, but the run summary still renders the screens.
     continue-on-error: true
+    # The default token pushes the summary's JPGs to the ci-shots branch.
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -331,13 +334,22 @@ jobs:
           done
           bash .github/scripts/android-screenshots.sh
 
+      # GitHub's Markdown does not render base64 data URIs in run summaries
+      # (broken-image icons) — publish compact JPGs on the ci-shots branch so
+      # the summary can point at true raw.githubusercontent.com .jpg URLs.
+      - name: Publish screenshots (direct JPG URLs for the summary)
+        if: always()
+        run: bash .github/scripts/publish_screenshots.sh android shots
+
       - name: Install Pillow (summary renderer)
         run: |
           python3 -m pip install --user --quiet pillow \
             || python3 -m pip install --break-system-packages --user --quiet pillow
 
       - name: Render screenshots into the run summary
-        run: python3 .github/scripts/render_summary.py "Android — main screens" shots
+        # EG_SHOTS_BASE_URL comes from publish_screenshots.sh; without it the
+        # renderer falls back to data URIs (some GitHub UIs still accept them).
+        run: python3 .github/scripts/render_summary.py "Android — main screens" shots ${EG_SHOTS_BASE_URL:+--base-url "$EG_SHOTS_BASE_URL"}
 
       - name: Upload screenshots artifact
         uses: actions/upload-artifact@v4
@@ -354,6 +366,9 @@ jobs:
     needs: ios
     # Non-blocking on purpose (same contract as the Android captures).
     continue-on-error: true
+    # The default token pushes the summary's JPGs to the ci-shots branch.
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -375,6 +390,12 @@ jobs:
       - name: Build + boot + capture main screens
         run: bash .github/scripts/ios-screenshots.sh
 
+      # Same contract as the Android job: real JPG files on the ci-shots
+      # branch → true direct .jpg URLs, which GitHub Markdown actually renders.
+      - name: Publish screenshots (direct JPG URLs for the summary)
+        if: always()
+        run: bash .github/scripts/publish_screenshots.sh ios shots
+
       - name: Install Pillow (summary renderer)
         # macOS runners manage python3 with PEP 668 (externally-managed
         # environment), so a --break-system-packages fallback is mandatory.
@@ -383,7 +404,7 @@ jobs:
             || python3 -m pip install --break-system-packages --user --quiet pillow
 
       - name: Render screenshots into the run summary
-        run: python3 .github/scripts/render_summary.py "iOS — main screens" shots
+        run: python3 .github/scripts/render_summary.py "iOS — main screens" shots ${EG_SHOTS_BASE_URL:+--base-url "$EG_SHOTS_BASE_URL"}
 
       - name: Upload screenshots artifact
         uses: actions/upload-artifact@v4

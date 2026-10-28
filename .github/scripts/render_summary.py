@@ -2,11 +2,15 @@
 """
 Render captured screenshots into the GitHub Actions run summary (GITHUB_STEP_SUMMARY).
 
-Images are downscaled and JPEG-compressed, then embedded as base64 data URIs so
-the run page renders the actual screens inline. Non-fatal: if Pillow is missing
-or the summary file is absent it degrades to a plain file list.
+Preferred mode (--base-url): reference the published direct JPG URLs
+(raw.githubusercontent.com files on the ci-shots branch) — GitHub's Markdown
+sanitizer does not render data:/base64 URIs, they show as broken images.
 
-Usage: render_summary.py "<section title>" <dir-with-images> [--max-width N]
+Fallback: downscaled JPEG-compressed base64 data URIs. Non-fatal: if Pillow is
+missing or the summary file is absent it degrades to a plain file list.
+
+Usage: render_summary.py "<section title>" <dir-with-images>
+              [--base-url https://raw.githubusercontent.com/…/<name>] [--max-width N]
 """
 import base64
 import io
@@ -38,6 +42,9 @@ def main() -> int:
     max_width = 420
     if "--max-width" in sys.argv:
         max_width = int(sys.argv[sys.argv.index("--max-width") + 1])
+    base_url = None
+    if "--base-url" in sys.argv:
+        base_url = sys.argv[sys.argv.index("--base-url") + 1] or None
 
     names = sorted(n for n in os.listdir(folder) if n.lower().endswith((".png", ".jpg", ".jpeg")))
     if not names:
@@ -48,6 +55,15 @@ def main() -> int:
     for name in names:
         label = os.path.splitext(name)[0].replace("-", " ").replace("_", " ").strip().title()
         path = os.path.join(folder, name)
+        if base_url:
+            # True direct JPG URLs — render inline on the run page and open as
+            # plain .jpg files; basename must match what publish_screenshots.sh
+            # wrote on the ci-shots branch (same stem, .jpg extension).
+            stem = os.path.splitext(name)[0]
+            lines.append(f'<p align="center"><strong>{label}</strong><br>'
+                         f'<a href="{base_url}/{stem}.jpg"><img width="{max_width}" '
+                         f'src="{base_url}/{stem}.jpg" alt="{label}"></a></p>')
+            continue
         uri = as_data_uri(path, max_width) if HAS_PIL else None
         if uri:
             lines.append(f'<p align="center"><strong>{label}</strong><br>'
