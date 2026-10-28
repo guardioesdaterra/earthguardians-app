@@ -48,8 +48,7 @@ public final class ContentRepository: ObservableObject {
     // MARK: - Refresh
 
     /// Refreshes the events + blog feeds (force to bypass the 30-min TTL).
-    @discardableResult
-    public func refreshFeed(force: Bool = false) async -> Void {
+    public func refreshFeed(force: Bool = false) async {
         guard feedSyncLock.withLock({ () -> Bool in
             if !force, lastFeedSyncAt > 0, Date().timeIntervalSince1970 - lastFeedSyncAt < Self.feedTTL { return false }
             return true
@@ -72,8 +71,7 @@ public final class ContentRepository: ObservableObject {
     }
 
     /// Refreshes the sitemap (force to bypass the 6-hour TTL).
-    @discardableResult
-    public func refreshSitemap(force: Bool = false) async -> Void {
+    public func refreshSitemap(force: Bool = false) async {
         guard sitemapSyncLock.withLock({ () -> Bool in
             if !force, lastSitemapSyncAt > 0, Date().timeIntervalSince1970 - lastSitemapSyncAt < Self.sitemapTTL { return false }
             return true
