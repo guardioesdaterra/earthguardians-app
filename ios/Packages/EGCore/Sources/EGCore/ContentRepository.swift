@@ -131,7 +131,7 @@ public final class ContentRepository: ObservableObject {
     // MARK: - Mapping RSS → domain
 
     static func mapPosts(_ items: [RssParser.RssItem]) -> [EgPost] {
-        items.compactMap { item in
+        items.compactMap { item -> EgPost? in
             guard let link = item.link, link.contains("/earthguardian-blog/") else { return nil }
             let title = (item.title?.isEmpty == false ? item.title : nil)
                 ?? EgText.titleFromSlug(EgText.slugOf(link))
@@ -148,7 +148,7 @@ public final class ContentRepository: ObservableObject {
     }
 
     static func mapEvents(_ items: [RssParser.RssItem]) -> [EgEvent] {
-        items.compactMap { item in
+        items.compactMap { item -> EgEvent? in
             guard let link = item.link, link.contains("/events/") else { return nil }
             let title = (item.title?.isEmpty == false ? item.title : nil)
                 ?? EgText.titleFromSlug(EgText.slugOf(link))
@@ -171,7 +171,7 @@ public final class ContentRepository: ObservableObject {
         guard segments.count >= 4, let year = Int(segments[1]), let month = Int(segments[2]), let day = Int(segments[3]) else { return nil }
         var components = DateComponents()
         components.year = year; components.month = month; components.day = day
-        return Calendar(identifier: .gregorianUTCFallback).date(from: components)
+        return Calendar.gregorianUTCFallback.date(from: components)
     }
 
     // MARK: - JSON disk cache (offline-first)
