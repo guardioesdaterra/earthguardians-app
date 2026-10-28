@@ -56,7 +56,9 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0" > /dev/null
 
       - name: Compile debug + release (unsigned)
-        run: gradle --stacktrace :app:assembleDebug :app:assembleRelease
+        # bundleRelease is required for the AAB artifact below — assembleRelease
+        # produces APKs only.
+        run: gradle --stacktrace :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
       - name: Unit tests (parsers, catalog, navigation, theme logic)
         run: gradle --stacktrace :app:testDebugUnitTest
@@ -143,7 +145,9 @@ jobs:
         run: |
           curl -sSL -o xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/latest/download/xcodegen.zip
           unzip -q xcodegen.zip -d xcodegen-dist
-          echo "XGEN=$(find xcodegen-dist -type f -name xcodegen | head -1)" >> "$GITHUB_ENV"
+          # Absolute path — the generate step shifts to ios/, which would
+          # silently break a relative $XGEN.
+          echo "XGEN=$(find "$(pwd)/xcodegen-dist" -type f -name xcodegen | head -1)" >> "$GITHUB_ENV"
 
       - name: Generate Xcode project from project.yml
         working-directory: ios
@@ -249,7 +253,9 @@ jobs:
         run: |
           curl -sSL -o xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/latest/download/xcodegen.zip
           unzip -q xcodegen.zip -d xcodegen-dist
-          echo "XGEN=$(find xcodegen-dist -type f -name xcodegen | head -1)" >> "$GITHUB_ENV"
+          # Absolute path — the generate step shifts to ios/, which would
+          # silently break a relative $XGEN.
+          echo "XGEN=$(find "$(pwd)/xcodegen-dist" -type f -name xcodegen | head -1)" >> "$GITHUB_ENV"
 
       - name: Generate Xcode project from project.yml
         working-directory: ios

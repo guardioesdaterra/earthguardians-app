@@ -100,7 +100,9 @@ jobs:
         run: |
           curl -sSL -o xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/latest/download/xcodegen.zip
           unzip -q xcodegen.zip -d xcodegen-dist
-          echo "XGEN=$(find xcodegen-dist -type f -name xcodegen | head -1)" >> "$GITHUB_ENV"
+          # Absolute path — the generate step shifts to ios/, which would
+          # silently break a relative $XGEN.
+          echo "XGEN=$(find "$(pwd)/xcodegen-dist" -type f -name xcodegen | head -1)" >> "$GITHUB_ENV"
 
       - name: Generate Xcode project
         working-directory: ios
