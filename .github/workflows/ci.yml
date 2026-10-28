@@ -340,6 +340,9 @@ jobs:
       - name: Publish screenshots (direct JPG URLs for the summary)
         if: always()
         run: bash .github/scripts/publish_screenshots.sh android shots
+        env:
+          # GITHUB_TOKEN is a context, not an ambient env var in raw steps.
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Install Pillow (summary renderer)
         run: |
@@ -395,6 +398,8 @@ jobs:
       - name: Publish screenshots (direct JPG URLs for the summary)
         if: always()
         run: bash .github/scripts/publish_screenshots.sh ios shots
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Install Pillow (summary renderer)
         # macOS runners manage python3 with PEP 668 (externally-managed
