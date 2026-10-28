@@ -55,6 +55,12 @@ public enum RssParser {
         elementName.split(separator: ":").last.map(String.init) ?? elementName
     }
 
+    /// Element types whose text is buffered; nested markup inside the
+    /// (CDATA-wrapped) description/content must not wipe the buffer mid-tag.
+    static let handledElements: Set<String> = [
+        "item", "title", "link", "description", "encoded", "pubDate", "category",
+    ]
+
     private final class Delegate: NSObject, XMLParserDelegate {
         final class MutableItem {
             var title: String?
@@ -71,8 +77,8 @@ public enum RssParser {
         private var text = ""
 
         func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String: String] = [:]) {
-            text = ""
             let name = RssParser.localName(elementName)
+            if RssParser.handledElements.contains(name) { text = "" }
             guard let item = current else {
                 if name == "item" { current = MutableItem() }
                 return
@@ -117,7 +123,7 @@ public enum RssParser {
             case "link":
                 if item.link == nil, !trimmed.isEmpty { item.link = trimmed }
             case "description":
-                if item.descriptionText == nil { item.descriptionText = trimmed }
+                if item.descriptionText == nil { item.descriptionText = EgText.decodeFeedEntities(trimmed) }
             case "encoded":
                 if item.contentHtml == nil { item.contentHtml = trimmed.isEmpty ? nil : trimmed }
             case "pubDate":
@@ -127,7 +133,7 @@ public enum RssParser {
             default:
                 break
             }
-            text = ""
+            if RssParser.handledElements.contains(name) { text = "" }
         }
     }
 }

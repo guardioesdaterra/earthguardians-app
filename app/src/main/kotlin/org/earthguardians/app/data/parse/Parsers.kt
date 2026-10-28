@@ -37,13 +37,20 @@ object RssParser {
         val items = mutableListOf<RssItem>()
         var current: MutableRssItem? = null
         var text = StringBuilder()
+        // A truncated feed must surface as an exception instead of silently
+        // returning fewer items than the feed promised.
+        var depth = 0
+        // Only these element types own buffered text; nested markup inside the
+        // (CDATA-wrapped) description/content must not wipe the buffer mid-tag.
+        val handled = setOf("item", "title", "link", "description", "encoded", "pubDate", "category")
 
         var event = parser.eventType
         while (event != XmlPullParser.END_DOCUMENT) {
             val name = parser.name.orEmpty().substringAfterLast(':')
             when (event) {
                 XmlPullParser.START_TAG -> {
-                    text = StringBuilder()
+                    depth++
+                    if (name in handled) text = StringBuilder()
                     when {
                         name == "item" -> current = MutableRssItem()
                         name == "enclosure" && current != null -> {
@@ -58,6 +65,7 @@ object RssParser {
                 }
                 XmlPullParser.TEXT -> text.append(parser.text.orEmpty())
                 XmlPullParser.END_TAG -> {
+                    depth = (depth - 1).coerceAtLeast(0)
                     val item = current
                     if (item != null) {
                         when (name) {
@@ -67,17 +75,20 @@ object RssParser {
                             }
                             "title" -> if (item.title == null) item.title = text.trimOrEmpty()
                             "link" -> if (item.link == null && text.isNotBlank()) item.link = text.trimOrEmpty()
-                            "description" -> if (item.description == null) item.description = text.trimOrEmpty()
+                            "description" -> if (item.description == null) item.description = EgText.decodeFeedEntities(text.trimOrEmpty())
                             "content:encoded", "encoded" -> if (item.contentHtml == null) item.contentHtml = text.orNullIfBlank()
                             "pubDate" -> if (item.pubDate == null) item.pubDate = text.trimOrEmpty()
                             "category" -> if (item.category == null && text.isNotBlank()) item.category = text.trimOrEmpty()
                         }
                     }
-                    text = StringBuilder()
+                    if (name in handled) text = StringBuilder()
                 }
             }
             event = parser.next()
         }
+        // XmlPullParser stops at end-of-stream even with open elements — a
+        // non-zero depth here means the feed XML is malformed/truncated.
+        if (depth > 0) throw XmlPullParserException("Unexpected end of document — feed XML is truncated", parser, null)
         return items
     }
 

@@ -16,11 +16,17 @@ object EgText {
         "&nbsp;" to " ",
     )
 
+    /** Decodes the handful of entities Squarespace feed text uses, keeping tags intact. */
+    fun decodeFeedEntities(raw: String): String {
+        var out = raw
+        entities.forEach { (entity, replacement) -> out = out.replace(entity, replacement) }
+        return out
+    }
+
     /** Strips tags and decodes the handful of entities Squarespace feed text uses. */
     fun fromHtml(raw: String?): String {
         if (raw.isNullOrBlank()) return ""
-        var out = raw.orEmpty()
-        entities.forEach { (entity, replacement) -> out = out.replace(entity, replacement) }
+        var out = decodeFeedEntities(raw)
         out = tagRegex.replace(out, " ")
         return whitespaceRegex.replace(out, " ").trim()
     }

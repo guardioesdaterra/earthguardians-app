@@ -54,7 +54,8 @@ final class ContentRepositoryMappingTests: XCTestCase {
     func testMapsPostsOnlyFromBlogPaths() {
         let items = RssParser.parse("""
         <rss><channel>
-        <item><title>Blog</title><link>https://www.earthguardians.org/earthguardian-blog/hello-world</link><description>&lt;b&gt;Teaser&lt;/b&gt;</description><pubDate>Fri, 01 Mar 2024 10:00:00 GMT</pubDate></item>
+        // Note: deliberately no <title> — exercises the slug → title fallback.
+        <item><link>https://www.earthguardians.org/earthguardian-blog/hello-world</link><description>&lt;b&gt;Teaser&lt;/b&gt;</description><pubDate>Fri, 01 Mar 2024 10:00:00 GMT</pubDate></item>
         <item><title>Not blog</title><link>https://www.earthguardians.org/random-page</link></item>
         </channel></rss>
         """)

@@ -32,9 +32,9 @@ public final class ContentRepository: ObservableObject {
         cacheDirectory: URL? = nil
     ) {
         self.session = session
-        self.cacheDirectory = cacheDirectory
-            ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        self.cacheDirectory = self.cacheDirectory.appendingPathComponent("eg_content", isDirectory: true)
+        self.cacheDirectory = (cacheDirectory
+            ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!)
+            .appendingPathComponent("eg_content", isDirectory: true)
         try? FileManager.default.createDirectory(at: self.cacheDirectory, withIntermediateDirectories: true)
 
         Task { [weak self] in

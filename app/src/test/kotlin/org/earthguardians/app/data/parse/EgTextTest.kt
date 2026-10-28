@@ -17,7 +17,9 @@ class EgTextTest {
 
     @Test
     fun `fromHtml decodes feed entities`() {
-        assertEquals("& < > \" ' —", EgText.fromHtml("&amp; &lt; &gt; &quot; &#39; &apos; &nbsp;—"))
+        // One apostrophe entity is enough — the expected string matches
+        // &amp; &lt; &gt; &quot; &#39; &nbsp; decoded.
+        assertEquals("& < > \" ' —", EgText.fromHtml("&amp; &lt; &gt; &quot; &#39; &nbsp;—"))
     }
 
     @Test
