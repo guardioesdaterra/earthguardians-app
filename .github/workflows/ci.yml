@@ -5,10 +5,12 @@ name: CI
 # Every push and every pull request must compile + unit-test green before merge.
 #
 # Jobs:
-#   android   → universal APK (all ABIs, no splits) + AAB + JVM unit tests
-#   ios       → EGCore swift test on both toolchains (Xcode 16 + newest)
-#   ios-ipa   → three unsigned IPAs, one per iOS support tier:
-#                 iOS16 (16.0 floor) · iOS18 (modern kit) · iOS26 (Liquid Glass, Xcode 26)
+#   android       → universal APK (all ABIs, no splits) + AAB + JVM unit tests
+#   ios           → EGCore swift test on both toolchains (Xcode 16 + newest)
+#   ios-ipa       → three unsigned IPAs, one per iOS support tier:
+#                    iOS16 (16.0 floor) · iOS18 (modern kit) · iOS26 (Liquid Glass, Xcode 26)
+#   screenshots   → emulator + simulator captures of the main screens
+#                    (non-blocking, continue-on-error; rendered into the run summary)
 
 on:
   push:
@@ -186,3 +188,85 @@ jobs:
           path: |
             ios/build/*.log
             /Users/runner/Library/Developer/Xcode/DerivedData/**/Logs/**/*.log
+
+  screenshots-android:
+    name: Screenshots — Android main screens (emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: android
+    # Non-blocking on purpose: best-effort captures — a flaky emulator must
+    # never hold the pipeline, but the run summary still renders the screens.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download universal APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-universal-apk
+
+      - name: Boot emulator + capture main screens
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash .github/scripts/android-screenshots.sh
+
+      - name: Install Pillow (summary renderer)
+        run: |
+          python3 -m pip install --user --quiet pillow \
+            || python3 -m pip install --break-system-packages --user --quiet pillow
+
+      - name: Render screenshots into the run summary
+        run: python3 .github/scripts/render_summary.py "Android — main screens" shots
+
+      - name: Upload screenshots artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-android
+          if-no-files-found: ignore
+          path: shots/
+
+  screenshots-ios:
+    name: Screenshots — iOS main screens (simulator)
+    runs-on: macos-15
+    timeout-minutes: 45
+    needs: ios
+    # Non-blocking on purpose (same contract as the Android captures).
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen + generate project
+        run: |
+          curl -sSL -o xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/latest/download/xcodegen.zip
+          unzip -q xcodegen.zip -d xcodegen-dist
+          echo "XGEN=$(find xcodegen-dist -type f -name xcodegen | head -1)" >> "$GITHUB_ENV"
+
+      - name: Generate Xcode project from project.yml
+        working-directory: ios
+        run: "$XGEN" generate
+
+      - name: Build + boot + capture main screens
+        run: bash .github/scripts/ios-screenshots.sh
+
+      - name: Install Pillow (summary renderer)
+        run: python3 -m pip install --user --quiet pillow || python3 -m pip3 install --user --quiet pillow
+
+      - name: Render screenshots into the run summary
+        run: python3 .github/scripts/render_summary.py "iOS — main screens" shots
+
+      - name: Upload screenshots artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-ios
+          if-no-files-found: ignore
+          path: shots/

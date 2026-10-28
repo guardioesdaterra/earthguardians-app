@@ -66,6 +66,12 @@ jobs:
     needs: release
     permissions:
       contents: write
+    # Optional TestFlight distribution: leave these secrets unset to skip.
+    #   ASC_KEY_ID / ASC_ISSUER_ID / ASC_PRIVATE_KEY (base64 .p8)
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
     strategy:
       fail-fast: false
       matrix:
@@ -125,3 +131,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ios/build/${{ matrix.ipa }}
+
+      # Full TestFlight path — activates automatically once App Store Connect
+      # API key secrets are provisioned; skipped silently until then.
+      - name: Upload to TestFlight
+        if: ${{ env.ASC_KEY_ID != '' }}
+        run: |
+          mkdir -p private_keys
+          printf '%s' "$ASC_PRIVATE_KEY" | base64 --decode > "private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          xcrun altool --upload-app -f "ios/build/${{ matrix.ipa }}" --type ios \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
