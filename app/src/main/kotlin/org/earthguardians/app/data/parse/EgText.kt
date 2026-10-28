@@ -19,7 +19,7 @@ object EgText {
     /** Strips tags and decodes the handful of entities Squarespace feed text uses. */
     fun fromHtml(raw: String?): String {
         if (raw.isNullOrBlank()) return ""
-        var out = raw
+        var out = raw.orEmpty()
         entities.forEach { (entity, replacement) -> out = out.replace(entity, replacement) }
         out = tagRegex.replace(out, " ")
         return whitespaceRegex.replace(out, " ").trim()

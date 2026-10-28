@@ -3,6 +3,7 @@ package org.earthguardians.app.data.parse
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.Reader
+import java.io.StringReader
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -25,6 +26,8 @@ object RssParser {
         val category: String? = null,
     )
 
+    fun parse(rawXml: String): List<RssItem> = parse(StringReader(rawXml))
+
     fun parse(reader: Reader): List<RssItem> {
         val factory = XmlPullParserFactory.newInstance()
         factory.isNamespaceAware = false
@@ -44,16 +47,16 @@ object RssParser {
                     when {
                         name == "item" -> current = MutableRssItem()
                         name == "enclosure" && current != null -> {
-                            val url = parser.attributeValue(null, "url")
+                            val url = parser.getAttributeValue(null, "url")
                             if (url != null && current.imageUrl == null) current.imageUrl = url
                         }
                         (name == "thumbnail" || name == "content") && current != null -> {
-                            val url = parser.attributeValue(null, "url")
+                            val url = parser.getAttributeValue(null, "url")
                             if (url != null && current.imageUrl == null) current.imageUrl = url
                         }
                     }
                 }
-                XmlPullParser.TEXT, XmlPullParser.CDATA -> text.append(parser.text.orEmpty())
+                XmlPullParser.TEXT -> text.append(parser.text.orEmpty())
                 XmlPullParser.END_TAG -> {
                     val item = current
                     if (item != null) {
@@ -127,6 +130,8 @@ object RssParser {
  */
 object SitemapParser {
 
+    fun parse(rawXml: String): List<String> = parse(StringReader(rawXml))
+
     fun parse(reader: Reader): List<String> {
         val factory = XmlPullParserFactory.newInstance()
         factory.isNamespaceAware = false
@@ -145,7 +150,7 @@ object SitemapParser {
                     insideLoc = name == "loc"
                     text = StringBuilder()
                 }
-                XmlPullParser.TEXT, XmlPullParser.CDATA -> if (insideLoc) text.append(parser.text.orEmpty())
+                XmlPullParser.TEXT -> if (insideLoc) text.append(parser.text.orEmpty())
                 XmlPullParser.END_TAG -> {
                     if (name == "loc") {
                         val loc = text.toString().trim()

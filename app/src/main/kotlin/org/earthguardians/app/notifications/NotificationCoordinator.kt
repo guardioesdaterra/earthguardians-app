@@ -98,7 +98,7 @@ class NotificationCoordinator(
         }
     }
 
-    fun sendTestNotification() {
+    suspend fun sendTestNotification() {
         push(
             title = context.getString(org.earthguardians.app.R.string.notif_test_title),
             message = context.getString(org.earthguardians.app.R.string.notif_test_message),
