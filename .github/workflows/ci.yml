@@ -217,7 +217,8 @@ jobs:
           set -euo pipefail
           SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           export PATH="$SDK/platform-tools:$SDK/cmdline-tools/latest/bin:$PATH"
-          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          export ANDROID_AVD_HOME="$HOME/.config/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
           yes | sdkmanager --licenses > /dev/null || true
           sdkmanager --install "system-images;android-34;google_apis;x86_64" "emulator" "platform-tools" > /dev/null
           echo "[sdk] system image / emulator / platform-tools ready"
@@ -267,8 +268,19 @@ jobs:
             exit 1
           fi
 
+          # KVM: the runner user is not in the kvm group (seen: 'This user
+          # doesn't have permissions to use KVM' → x86_64 requires hardware
+          # acceleration). A mode fix on the device node works without the
+          # re-login that group membership would need.
+          if [ -e /dev/kvm ] && ! { [ -r /dev/kvm ] && [ -w /dev/kvm ]; }; then
+            echo "[kvm] widening /dev/kvm permissions"; ls -l /dev/kvm
+            sudo chmod 666 /dev/kvm || true
+            ls -l /dev/kvm
+          fi
+          [ -e /dev/kvm ] || echo "[kvm] WARNING: /dev/kvm not present — emulator cannot run"
+
           "$SDK/emulator/emulator" -avd eg-shots \
-            -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim \
+            -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -no-metrics \
             > /tmp/emulator.log 2>&1 &
           EMU_PID=$!
 
