@@ -213,13 +213,33 @@ jobs:
           name: android-universal-apk
 
       - name: Boot emulator + capture main screens
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          arch: x86_64
-          profile: pixel_6
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          script: bash .github/scripts/android-screenshots.sh
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "system-images;android-34;google_apis;x86_64" "emulator" "platform-tools" > /dev/null
+
+          echo no | avdmanager create avd -n eg-shots -k "system-images;android-34;google_apis;x86_64" -d pixel_6
+
+          "$ANDROID_HOME/emulator/emulator" -avd eg-shots \
+            -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim \
+            > /tmp/emulator.log 2>&1 &
+          adb wait-for-device
+
+          # Cold boots on CI can take ~8 min; poll rather than race.
+          for i in $(seq 1 70); do
+            boot=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n ')
+            [ "$boot" = "1" ] && break
+            sleep 10
+          done
+          # system_server may not accept input commands immediately after
+          # boot_completed — extra airtime plus retries instead of the raw
+          # keyevent that third-party runners fail on with "Broken pipe (32)".
+          sleep 15
+          for i in 1 2 3; do
+            adb shell input keyevent 82 > /dev/null 2>&1 && break
+            sleep 5
+          done
+          bash .github/scripts/android-screenshots.sh
 
       - name: Install Pillow (summary renderer)
         run: |
