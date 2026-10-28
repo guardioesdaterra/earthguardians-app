@@ -1,8 +1,14 @@
 name: CI
 
-# Earth Guardians — official app
-# GOLDEN RULE (AGENTS.md): the app is ONLY built and tested here, on CI. Never locally.
+# Earth Guardians — official app (Android + iOS)
+# GOLDEN RULE (AGENTS.md): the apps are ONLY built and tested here, on CI. Never locally.
 # Every push and every pull request must compile + unit-test green before merge.
+#
+# Jobs:
+#   android   → universal APK (all ABIs, no splits) + AAB + JVM unit tests
+#   ios       → EGCore swift test on both toolchains (Xcode 16 + newest)
+#   ios-ipa   → three unsigned IPAs, one per iOS support tier:
+#                 iOS16 (16.0 floor) · iOS18 (modern kit) · iOS26 (Liquid Glass, Xcode 26)
 
 on:
   push:
@@ -19,8 +25,8 @@ defaults:
     shell: bash
 
 jobs:
-  build-and-test:
-    name: Build + Unit Tests (ubuntu)
+  android:
+    name: Android — build + unit tests (ubuntu)
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -57,16 +63,126 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-results
+          name: android-unit-test-results
           path: app/build/reports/tests/testDebugUnitTest/
 
-      - name: Upload APK & AAB artifacts
+      - name: Upload universal APK (all ABIs — no splits configured)
         uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: earth-guardians-${{ github.sha }}
+          name: android-universal-apk
           if-no-files-found: error
+          path: app/build/outputs/apk/**/*.apk
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: android-release-aab
+          if-no-files-found: error
+          path: app/build/outputs/bundle/release/*.aab
+
+  ios:
+    name: iOS — EGCore tests (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-26]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: EGCore unit tests (pure Foundation — no simulator needed)
+        run: swift test --package-path ios/Packages/EGCore
+
+  ios-ipa:
+    name: iOS IPA — ${{ matrix.label }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    needs: ios
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # iOS 16 floor — widest device compatibility, hand-painted glass kit
+          - label: iOS16
+            config: Release
+            runner: macos-15
+            ipa: EG-iOS16.ipa
+          # iOS 18 — EG_MODERN kit (ContentUnavailableView, symbol effects, scroll targets)
+          - label: iOS18
+            config: Release-iOS18
+            runner: macos-15
+            ipa: EG-iOS18.ipa
+          # iOS 26 — EG_LATEST kit (Liquid Glass) on the newest Xcode/SDK
+          - label: iOS26
+            config: Release-iOS26
+            runner: macos-26
+            ipa: EG-iOS26.ipa
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Toolchain versions
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -E "iphoneos" || true
+
+      - name: Install XcodeGen (project is generated, never committed)
+        run: |
+          curl -sSL -o xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/latest/download/xcodegen.zip
+          unzip -q xcodegen.zip -d xcodegen-dist
+          echo "XGEN=$(find xcodegen-dist -type f -name xcodegen | head -1)" >> "$GITHUB_ENV"
+
+      - name: Generate Xcode project from project.yml
+        working-directory: ios
+        run: "$XGEN" generate
+
+      - name: Archive app + widget (${{ matrix.config }}, unsigned)
+        working-directory: ios
+        run: |
+          xcodebuild archive \
+            -project EarthGuardians.xcodeproj \
+            -scheme EarthGuardians \
+            -configuration "${{ matrix.config }}" \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/EG.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            -quiet
+
+      - name: Package unsigned IPA (${{ matrix.ipa }})
+        working-directory: ios
+        run: |
+          mkdir -p build/Payload
+          cp -R build/EG.xcarchive/Products/Applications/EarthGuardians.app build/Payload/
+          (cd build && zip -qry "${{ matrix.ipa }}" Payload)
+          ls -lh "build/${{ matrix.ipa }}"
+
+      - name: Upload unsigned IPA artifact (${{ matrix.label }})
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ios-ipa-${{ matrix.label }}
+          if-no-files-found: error
+          path: ios/build/${{ matrix.ipa }}
+
+      - name: Upload xcodebuild log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-logs-${{ matrix.label }}
+          if-no-files-found: ignore
           path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
+            ios/build/*.log
+            /Users/runner/Library/Developer/Xcode/DerivedData/**/Logs/**/*.log

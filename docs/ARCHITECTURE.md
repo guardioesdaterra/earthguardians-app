@@ -149,3 +149,62 @@ Handled by pure-Kotlin `Deeplinks.parseRoute` in `graph/AppGraph.kt`
 Kotlin 2.1.0 · Compose BOM 2025.01.00 · AGP 8.7.3 · Gradle 8.11.1 ·
  JDK 17 · minSdk 26 · target/compile SDK 35 · OkHttp 4.12 · Coil 2.7 ·
 navigation-compose 2.8.5 · WorkManager 2.10 · DataStore 1.1.1
+
+---
+
+# iOS app (SwiftUI twin)
+
+Same product surface, native SwiftUI. Deployment targets come in **three
+tiers**, each archived into its own unsigned IPA by CI (see the table in
+`AGENTS.md` / `README.md`):
+
+```
+┌────────────────────────── EarthGuardiansApp (@main) ─────────────────────────┐
+│  EGAppDelegate — BGTask registration · quick actions · Spotlight ·           │
+│                  notification taps (UNUserNotificationCenterDelegate)         │
+│  └ RootView ── onboarding gate ── TabView + floating glass bottom bar         │
+│      ├ HomeScreen        (EgImage/AsyncImage)   ├ EventsScreen                │
+│      ├ EventDetailScreen (EventKit + share)     ├ StoriesScreen + StoryReader │
+│      ├ MapsScreen        (Atlas/Regions/Species) ├ MoreScreen (sitemap index) │
+│      ├ SettingsScreen    (theme switch)         ├ NotificationsScreen         │
+│      └ SiteWebView       (themed WKWebView)     └ RouteBus ◄ deeplinks ·      │
+│                                             shortcuts · intents · Spotlight  │
+└───────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Composition root:** `AppGraph.shared` (@MainActor) — publishes theme +
+  onboarding mirrors; `RouteBus` funnels every external arrival (deep links,
+  notifications, quick actions, App Intents, Spotlight) into the root view.
+- **Project:** generated on CI by XcodeGen from `ios/project.yml`
+  (never committed). App target + `EGWidget` WidgetKit extension, both linking
+  the SwiftPM package `EGCore`.
+- **EGCore (pure Foundation, `swift test` on CI):** Models, `RssParser`
+  (namespace-agnostic XMLParser), `SitemapParser`, `SiteCatalog`, `Deeplinks`,
+  `EgText`, `ContentRepository` (async URLSession + JSON disk cache).
+- **Story reader:** the same Vue shell, loaded from `Bundle.main`
+  (`Resources/index.html`); `window.EGAndroid.{close,open,share}` is shimmed at
+  `documentStart` onto `WKScriptMessageHandler`; payload delivery retries until
+  `window.EGStory` exists (esm.sh hydration lag), mirroring Android.
+- **Site browser:** `SiteWebView` — KVO on `estimatedProgress` for the progress
+  bar, coordinator-owned `goBack()` (web history first, pop on first page),
+  per-navigation dark filter, external hosts handed to Safari.
+- **Integrations:** WidgetKit timeline (events RSS → 6h refresh → `earthguardians://events`),
+  AppIntents (`OpenEvents`, `OpenStories`, `DonateNow` + AppShortcutsProvider),
+  CoreSpotlight indexing of the whole curated catalog, EventKit edit sheet,
+  `UNUserNotificationCenter` with three categories mirroring the Android
+  channels, BGAppRefreshTask (`org.earthguardians.app.sync`).
+
+## Tier plumbing (three kits, one source)
+
+`UI/Design/KitTiers.swift` compiles differently per build configuration
+(flags wired in `ios/project.yml`):
+
+- `Release` — iOS 16.0 floor: hand-painted glass (fill + hairline stroke),
+  no tier flags.
+- `Release-iOS18` — `EG_MODERN`: `ContentUnavailableView` states, symbol
+  bounce effects, view-aligned carousel targets, two-parameter `onChange`.
+- `Release-iOS26` — `EG_MODERN` + `EG_LATEST`: Liquid Glass (`glassEffect`,
+  `.buttonStyle(.glass)`) on chrome, built with the iOS 26 SDK on `macos-26`.
+
+All other source stays on the iOS 16 floor so every tier compiles from the
+same tree; CI archives each configuration into `EG-iOS16/18/26.ipa`.

@@ -10,6 +10,16 @@ captures/
 .externalNativeBuild/
 .cxx/
 
+# iOS — generated project + local build products (builds happen on CI only)
+ios/EarthGuardians.xcodeproj/
+ios/DerivedData/
+ios/*.ipa
+xcuserdata/
+*.xcuserstate
+xcodegen-dist/
+xcodegen.zip
+*.xcarchive
+
 # IDE
 .idea/
 *.iml

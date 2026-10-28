@@ -1,0 +1,122 @@
+name: EarthGuardians
+options:
+  bundleIdPrefix: org.earthguardians
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  # iOS support tiers — CI archives each Release config into its own IPA:
+  #   Release        → iOS 16.0 floor (widest compatibility)
+  #   Release-iOS18  → iOS 18.0, enables EG_MODERN kit (iOS 17/18 SwiftUI)
+  #   Release-iOS26  → iOS 26.0, enables EG_LATEST kit (Liquid Glass, iOS 26 SDK)
+  configs:
+    Debug: debug
+    Release: release
+    Release-iOS18: release
+    Release-iOS26: release
+
+packages:
+  EGCore:
+    path: Packages/EGCore
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    GENERATE_INFOPLIST_FILE: NO
+    CODE_SIGN_STYLE: Manual
+    EXPANDED_CODE_SIGN_IDENTITY: ""
+
+targets:
+  EarthGuardians:
+    type: application
+    platform: iOS
+    sources:
+      - EarthGuardians
+    dependencies:
+      - package: EGCore
+        product: EGCore
+      - target: EGWidget
+        embed: true
+    info:
+      path: EarthGuardians/Info.plist
+      properties:
+        CFBundleDisplayName: Earth Guardians
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        CFBundleURLTypes:
+          - CFBundleURLName: org.earthguardians.app
+            CFBundleURLSchemes: [earthguardians]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIUserInterfaceStyle: Automatic
+        # Background content sync (BGTaskScheduler) — twin of Android WorkManager.
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers:
+          - org.earthguardians.app.sync
+        # Static home-screen quick actions.
+        UIApplicationShortcutItems:
+          - UIApplicationShortcutItemType: org.earthguardians.app.shortcut.events
+            UIApplicationShortcutItemTitle: Crew Events
+            UIApplicationShortcutItemSubtitle: Every crew gathering
+            UIApplicationShortcutItemIconSymbolName: calendar
+          - UIApplicationShortcutItemType: org.earthguardians.app.shortcut.stories
+            UIApplicationShortcutItemTitle: Stories
+            UIApplicationShortcutItemSubtitle: Blog dispatches
+            UIApplicationShortcutItemIconSymbolName: book
+          - UIApplicationShortcutItemType: org.earthguardians.app.shortcut.donate
+            UIApplicationShortcutItemTitle: Donate
+            UIApplicationShortcutItemSubtitle: Fuel youth climate work
+            UIApplicationShortcutItemIconSymbolName: heart.fill
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.earthguardians.app
+        TARGETED_DEVICE_FAMILY: "1,2"
+      configs:
+        Release-iOS18:
+          IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+          OTHER_SWIFT_FLAGS: "$(inherited) -DEG_MODERN"
+        Release-iOS26:
+          IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+          OTHER_SWIFT_FLAGS: "$(inherited) -DEG_MODERN -DEG_LATEST"
+
+  EGWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Widget
+    dependencies:
+      - package: EGCore
+        product: EGCore
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: EG Events
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.earthguardians.app.widget
+        TARGETED_DEVICE_FAMILY: "1,2"
+      configs:
+        Release-iOS18:
+          IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+          OTHER_SWIFT_FLAGS: "$(inherited) -DEG_MODERN"
+        Release-iOS26:
+          IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+          OTHER_SWIFT_FLAGS: "$(inherited) -DEG_MODERN -DEG_LATEST"
+
+schemes:
+  EarthGuardians:
+    build:
+      targets:
+        EarthGuardians: all
+        EGWidget: [build]
+    run:
+      config: Debug
+    archive:
+      config: Release

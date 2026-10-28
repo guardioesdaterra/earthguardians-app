@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!--
+  Earth Guardians — in-app story reader
+  Vue 3 + VueUse composables (useStorage, useTitle, useEventListener, useSwipe,
+  whenever, useDebounceFn) rendered inside a native WebView.
+  Bridge contract (window.EGStory / window.EGAndroid) is driven from Kotlin.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Earth Guardians</title>
+<script type="importmap">
+{
+  "imports": {
+    "vue": "https://esm.sh/vue@3.5.13",
+    "@vueuse/core": "https://esm.sh/@vueuse/core@11.3.0"
+  }
+}
+</script>
+<style>
+  :root {
+    --red: #FF3B30;
+    --green: #34C759;
+    --bg: #ffffff;
+    --fg: #050505;
+    --muted: #6e6e73;
+    --glass: rgba(255, 255, 255, 0.72);
+    --stroke: rgba(0, 0, 0, 0.08);
+  }
+  html.dark {
+    --bg: #000000;
+    --fg: #fafafa;
+    --muted: #98989f;
+    --glass: rgba(18, 18, 20, 0.75);
+    --stroke: rgba(255, 255, 255, 0.1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  .eg-reader { max-width: 680px; margin: 0 auto; padding: 0 20px 80px; }
+  .progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 20; background: transparent; }
+  .progress .bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--red), var(--green)); transition: width 0.1s linear; }
+  .top { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: transparent; transition: background 0.25s ease, border 0.25s ease; }
+  .top.solid { background: var(--glass); backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--stroke); }
+  .brand { font-size: 12px; letter-spacing: 2.4px; font-weight: 700; color: var(--muted); }
+  .ghost { border: 1px solid var(--stroke); background: transparent; color: var(--fg); border-radius: 100px; padding: 7px 14px; font-size: 13px; font-weight: 600; }
+  .hero { margin: 70px -20px 22px; }
+  .hero img { width: 100%; max-height: 300px; object-fit: cover; border-radius: 0 0 22px 22px; display: block; background: linear-gradient(120deg, rgba(255,59,48,.2), rgba(52,199,89,.2)); }
+  h1 { font-size: 30px; line-height: 1.22; letter-spacing: -0.8px; font-weight: 800; margin: 0 0 10px; }
+  .meta { display: flex; gap: 12px; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 26px; }
+  .meta .dot { width: 4px; height: 4px; border-radius: 2px; background: var(--muted); }
+  .content { font-size: var(--eg-font, 17px); line-height: 1.65; color: var(--fg); }
+  .content p { margin: 0 0 16px; }
+  .content img { max-width: 100%; border-radius: 16px; }
+  .content a { color: var(--green); }
+  blockquote { border-left: 3px solid var(--red); margin: 18px 0; padding: 4px 0 4px 16px; color: var(--muted); font-style: italic; }
+  .actions { display: flex; flex-direction: column; gap: 10px; margin: 34px 0 18px; }
+  .cta { border: none; color: #fff; font-size: 15px; font-weight: 600; padding: 15px 18px; border-radius: 100px; width: 100%; }
+  .cta.red { background: var(--red); }
+  .cta.green { background: var(--green); }
+  .fontctl { display: flex; align-items: center; justify-content: center; gap: 14px; color: var(--muted); font-size: 13px; padding: 14px; border: 1px solid var(--stroke); border-radius: 100px; }
+  .fontctl button { border: none; background: transparent; color: var(--fg); font-weight: 700; font-size: 14px; }
+  .fade-enter-active { transition: opacity .3s ease; }
+  .fade-enter-from { opacity: 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="module">
+  import { createApp, ref, computed, onMounted, nextTick, defineComponent } from 'vue';
+  import {
+    useStorage,
+    useTitle,
+    useEventListener,
+    useSwipe,
+    useDebounceFn,
+    whenever,
+  } from '@vueuse/core';
+
+  const app = defineComponent({
+    setup() {
+      const article = ref(null);
+      const isDark = ref(true);
+      const htmlFontSize = useStorage('eg_reader_font_size', 17);
+      const rootEl = ref(null);
+      const scrollTop = ref(0);
+      const docHeight = ref(1);
+
+      const thresholdY = ref(56);
+      const showBar = computed(() => scrollTop.value > thresholdY.value);
+      const progress = computed(() => {
+        const viewH = window.innerHeight || 1;
+        const max = docHeight.value - viewH;
+        return Math.max(0, Math.min(100, (scrollTop.value / max) * 100));
+      });
+      const readMins = computed(() => {
+        if (!article.value) return 1;
+        const words = (article.value.html || '').split(/\s+/).filter(Boolean).length;
+        return Math.max(1, Math.round(words / 220));
+      });
+      const publishedLabel = computed(() => {
+        const at = article.value?.publishedAt;
+        if (!at) return 'Earth Guardian blog';
+        try {
+          return new Date(at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        } catch (e) { return 'Earth Guardian blog'; }
+      });
+
+      const onScroll = useDebounceFn(() => {
+        scrollTop.value = window.scrollY || 0;
+        docHeight.value = document.documentElement.scrollHeight || document.body.scrollHeight || 1;
+      }, 40, { maxWait: 100 });
+      useEventListener(window, 'scroll', onScroll, { passive: true });
+
+      // Swipe right to close while near the top (bridge → native pop).
+      const { direction } = useSwipe(window, { threshold: 80 });
+      whenever(() => direction.value === 'right' && scrollTop.value < 60, () => {
+        sendMessage('close');
+      }, { deep: false });
+
+      // Native theme sync.
+      whenever(isDark, (dark) => {
+        document.documentElement.classList.toggle('dark', dark);
+      }, { immediate: true });
+
+      const fontSizeCss = computed(() => ({
+        '--eg-font': `${htmlFontSize.value}px`,
+      }));
+
+      function enrichImages() {
+        nextTick(() => {
+          const root = rootEl.value;
+          if (!root) return;
+          root.querySelectorAll('img').forEach((img) => {
+            img.setAttribute('loading', 'lazy');
+          });
+        });
+      }
+
+      function load(payload) {
+        article.value = payload;
+        isDark.value = !!payload.dark;
+        useTitle(`EG · ${payload.title || 'Story'}`);
+        enrichImages();
+      }
+
+      function setDark(dark) {
+        isDark.value = !!dark;
+      }
+
+      window.EGStory = { load, setDark };
+
+      function sendMessage(action, ...args) {
+        try {
+          window.EGAndroid && window.EGAndroid[action] && window.EGAndroid[action](...args);
+        } catch (e) { /* no bridge; ignore */ }
+      }
+      const close = () => sendMessage('close');
+      const openFull = () => article.value && article.value.url && sendMessage('open', article.value.url);
+      const share = () => article.value && sendMessage('share', article.value.title || 'Earth Guardians', article.value.url || '');
+      const inc = () => { htmlFontSize.value = Math.min(24, htmlFontSize.value + 1); };
+      const dec = () => { htmlFontSize.value = Math.max(14, htmlFontSize.value - 1); };
+
+      onMounted(() => { onScroll(); });
+
+      return {
+        article, isDark, rootEl, showBar, progress, readMins, publishedLabel,
+        fontSizeCss, close, openFull, share, inc, dec,
+      };
+    },
+    template: `
+      <div class="eg-reader" :style="fontSizeCss" ref="rootEl">
+        <div class="progress"><div class="bar" :style="{ width: progress + '%' }"></div></div>
+        <header class="top" :class="{ solid: showBar }">
+          <button class="ghost" @click="close()">Close</button>
+          <span class="brand">EARTH GUARDIANS</span>
+        </header>
+        <article v-if="article">
+          <div class="hero"><img v-if="article.image" :src="article.image" alt="" /></div>
+          <h1>{{ article.title }}</h1>
+          <div class="meta">
+            <span>{{ publishedLabel }}</span>
+            <span class="dot"></span>
+            <span>{{ readMins }} min read</span>
+          </div>
+          <div class="content" v-html="article.html"></div>
+          <div class="actions">
+            <button class="cta red" @click="openFull()">Open full story</button>
+            <button class="cta green" @click="share()">Share this story</button>
+          </div>
+          <div class="fontctl">
+            <button @click="dec()">A−</button>
+            <span>{{ htmlFontSize }}px</span>
+            <button @click="inc()">A+</button>
+          </div>
+        </article>
+      </div>
+    `,
+  });
+
+  createApp(app).mount('#app');
+</script>
+</body>
+</html>
