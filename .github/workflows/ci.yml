@@ -222,15 +222,50 @@ jobs:
           sdkmanager --install "system-images;android-34;google_apis;x86_64" "emulator" "platform-tools" > /dev/null
           echo "[sdk] system image / emulator / platform-tools ready"
 
-          echo no | avdmanager create avd -n eg-shots -k "system-images;android-34;google_apis;x86_64" -d pixel_6
+          # avdmanager can exit 0 yet produce NO avd on these runners (observed:
+          # 'Auto-selecting single ABI x86_64' then an empty avd home). Keep its
+          # output for diagnosis, verify the .ini actually exists, and hand-roll
+          # the AVD as a deterministic fallback if it didn't materialize.
+          echo no | avdmanager create avd -n eg-shots \
+            -k "system-images;android-34;google_apis;x86_64" -d pixel_6 --force \
+            > /tmp/avdmanager.log 2>&1 || true
+          if ! [ -f "$ANDROID_AVD_HOME/eg-shots.ini" ]; then
+            echo "[avd] avdmanager produced no AVD — its log and filesystem scan:"
+            tail -20 /tmp/avdmanager.log || true
+            find "$HOME" "$SDK" -maxdepth 6 -name "eg-shots*" 2>/dev/null || true
+            echo "[avd] hand-rolling eg-shots.avd"
+            AVD_DIR="$ANDROID_AVD_HOME/eg-shots.avd"
+            mkdir -p "$AVD_DIR"
+            cat > "$ANDROID_AVD_HOME/eg-shots.ini" <<EOF
+          avd.ini.encoding=UTF-8
+          path=$AVD_DIR
+          path.rel=avd/eg-shots.avd
+          target=android-34
+          EOF
+            cat > "$AVD_DIR/config.ini" <<EOF
+          abi.type=x86_64
+          hw.cpu.arch=x86_64
+          hw.cpu.ncore=2
+          hw.keyboard=yes
+          hw.ramSize=3072
+          hw.lcd.width=1080
+          hw.lcd.height=2400
+          hw.lcd.density=420
+          hw.device.manufacturer=Google
+          hw.device.name=pixel_6
+          image.sysdir.1=system-images/android-34/google_apis/x86_64/
+          tag.id=google_apis
+          disk.dataPartition.size=6G
+          EOF
+          fi
 
-          # Register the AVD into a fixed search dir honored by avdmanager AND
-          # the emulator (its search order: ANDROID_AVD_HOME, $SDK_HOME/avd,
-          # $HOME/.android/avd). Verify both sides agree before launching.
-          export ANDROID_AVD_HOME="$HOME/.android/avd"
-          mkdir -p "$ANDROID_AVD_HOME"
-          echo "[avd] contents:"; ls -la "$ANDROID_AVD_HOME" || true
-          echo "[avd] emulator-visible list:"; "$SDK/emulator/emulator" -list-avds || true
+          # Gate: the emulator must see the AVD by name before we launch it.
+          echo "[avd] contents:"; ls -la "$ANDROID_AVD_HOME"
+          if ! "$SDK/emulator/emulator" -list-avds 2>/dev/null | grep -q eg-shots; then
+            echo "[avd] emulator still cannot see eg-shots:"
+            "$SDK/emulator/emulator" -list-avds || true
+            exit 1
+          fi
 
           "$SDK/emulator/emulator" -avd eg-shots \
             -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim \
