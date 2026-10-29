@@ -6,7 +6,7 @@ This is a **masked screenshot regression check**, not a claim of complete pixel 
 
 The Android source is `tests/fixtures/pwa-home/android-home-run-40876025810.png` (1080×2400). The comparator takes the content rectangle `[left=0, top=149, right=1080, bottom=2336)`, yielding 1080×2187 px. This excludes the Pixel 6 status/camera inset above the first Home content and the gesture-navigation inset below the app; the Android bottom bar remains in the compared content.
 
-The PWA capture uses Chromium in light mode, `en-US`, UTC, a 412×834 CSS viewport and device scale factor 2.625. It captures a 411.4286×833.1429 CSS-pixel clip, which rasterizes to the same 1080×2187 px content dimensions. The PWA has no Android system bars, so the screenshot starts at its app content edge.
+The PWA capture uses Chromium in light mode, `en-US`, UTC, a 412×834 CSS viewport and device scale factor 2.625. The desired content extent is 411.4286×833.1429 CSS px, but a fractional Playwright clip can round to 1079 px wide. To avoid that ambiguity, CI captures the full viewport and crops the PNG from its top-left origin to exactly 1080×2187 device pixels, without resizing. The PWA has no Android system bars, so the screenshot starts at its app content edge.
 
 ## Deterministic feed and masks
 

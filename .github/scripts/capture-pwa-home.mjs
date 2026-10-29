@@ -1,7 +1,8 @@
 import { createRequire } from 'node:module'
+import { execFileSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(scriptDir, '../..')
@@ -19,6 +20,7 @@ const CSS_CLIP = {
 }
 const url = process.env.PWA_HOME_URL || 'http://127.0.0.1:4173/'
 const screenshotPath = resolve(repoRoot, process.env.PWA_HOME_SCREENSHOT || 'artifacts/pwa-home.png')
+const rawScreenshotPath = `${screenshotPath}.raw.png`
 const masksPath = resolve(repoRoot, process.env.PWA_HOME_MASKS || 'artifacts/pwa-home-masks.json')
 const feedPath = resolve(repoRoot, 'tests/fixtures/pwa-home/feed.json')
 const feed = await readFile(feedPath, 'utf8')
@@ -95,14 +97,24 @@ try {
     throw new Error('No visible event/story media masks were found; update the test selectors rather than silently comparing live media.')
   }
 
-  await page.screenshot({
-    path: screenshotPath,
-    type: 'png',
-    clip: CSS_CLIP,
-    scale: 'device',
-    animations: 'disabled',
-    caret: 'hide',
-  })
+  try {
+    await page.screenshot({
+      path: rawScreenshotPath,
+      type: 'png',
+      scale: 'device',
+      animations: 'disabled',
+      caret: 'hide',
+    })
+    execFileSync('python3', [
+      resolve(scriptDir, 'crop-pwa-home.py'),
+      rawScreenshotPath,
+      screenshotPath,
+      String(WIDTH_PX),
+      String(HEIGHT_PX),
+    ], { stdio: 'inherit' })
+  } finally {
+    await rm(rawScreenshotPath, { force: true })
+  }
   await writeFile(masksPath, `${JSON.stringify({
     width: WIDTH_PX,
     height: HEIGHT_PX,
