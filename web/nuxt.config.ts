@@ -1,6 +1,5 @@
 // Earth Guardians web — Nuxt SSG for GitHub Pages.
-// No external modules: everything (PWA, theme, design system) is hand-rolled so
-// the build never depends on a module ecosystem update breaking CI.
+// MapLibre is loaded only on the Maps screen; map data remains bundled for offline use.
 const rawBase = process.env.NUXT_APP_BASE_URL || '/'
 const BASE = rawBase.endsWith('/') ? rawBase : `${rawBase}/`
 
@@ -24,7 +23,6 @@ export default defineNuxtConfig({
           content:
             'Earth Guardians is a revolutionary environmental nonprofit run for youth, by youth. Events, stories, EG-Maps and every program of the movement — offline-first.',
         },
-        // Brand rule: black/white + iOS red + iOS green only.
         { name: 'theme-color', media: '(prefers-color-scheme: light)', content: '#FFFFFF' },
         { name: 'theme-color', media: '(prefers-color-scheme: dark)', content: '#000000' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
@@ -42,14 +40,14 @@ export default defineNuxtConfig({
       ],
       script: [
         {
-          // Resolve the theme before first paint (same storage key as useTheme).
+          // Resolve the theme before first paint (same storage key as useEgTheme).
           innerHTML:
             "try{var m=localStorage.getItem('eg_theme')||'system';var d=m==='dark'||(m!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light'}catch(e){}",
         },
       ],
     },
   },
-  css: ['~/assets/css/main.css'],
+  css: ['~/assets/css/main.css', 'maplibre-gl/dist/maplibre-gl.css'],
   nitro: {
     prerender: {
       // All app pages are listed below; crawling query links can treat nested
