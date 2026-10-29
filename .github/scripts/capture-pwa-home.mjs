@@ -67,8 +67,8 @@ try {
   })
 
   const maskSelectors = [
-    { selector: '.home-event-art[data-comparison-media="remote"]', reason: 'Remote event artwork and its overlaid date' },
-    { selector: '.home-story-row[data-comparison-media="remote"] > img, .home-story-row[data-comparison-media="remote"] > .home-story-placeholder', reason: 'Remote story thumbnail' },
+    { selector: '.home-event-art[data-comparison-media="remote"] > img', reason: 'Remote event artwork only' },
+    { selector: '.home-story-row[data-comparison-media="remote"] > img', reason: 'Remote story image only' },
   ]
   const masks = []
   for (const { selector, reason } of maskSelectors) {
