@@ -21,10 +21,6 @@ const featuredStories = computed(() => posts.value.slice(0, 5).map(post => {
     homeImageSource: localImage ? 'bundled' : post.imageUrl ? 'remote' : 'placeholder',
   }
 }))
-const collageImages = [
-  'eg_home_community.jpg', 'eg_home_benin_action.jpg', 'eg_home_leaves.jpg', 'eg_home_fieldwork.jpg',
-  'eg_home_youth_gathering.jpg', 'eg_home_climate_action.jpg', 'eg_home_community.jpg', 'eg_home_fieldwork.jpg',
-]
 const stats = [
   { value: '1M+', label: 'people impacted', tone: 'green' },
   { value: '20K+', label: 'trees planted', tone: 'green' },
@@ -48,9 +44,6 @@ useHead({ title: 'Home · Earth Guardians' })
   <div class="page-stack home-page">
     <section class="home-hero" aria-label="Earth Guardians mission">
       <img class="home-hero-photo" :src="`${base}official-home/eg_home_benin_action.jpg`" alt="Young Earth Guardians taking action in Benin" fetchpriority="high">
-      <div class="home-photo-collage" aria-hidden="true">
-        <img v-for="(image, index) in collageImages" :key="`${image}-${index}`" :src="`${base}official-home/${image}`" :class="`collage-photo collage-photo--${index + 1}`" alt="">
-      </div>
       <div class="home-hero-shade"></div>
       <div class="home-hero-copy">
         <span class="home-eyebrow">FOR YOUTH · BY YOUTH</span>
