@@ -99,6 +99,7 @@ private const val EG_MAPS_HOME_URL = "https://guardioesdaterra.github.io/EG-Maps
 private const val EG_MAPS_HOST = "guardioesdaterra.github.io"
 private const val EG_MAPS_PATH = "/EG-Maps"
 private const val NEARBY_CREW_MAX_DISTANCE_KM = 150.0
+private const val REGION_AGGREGATION_LONGITUDE_SPAN_DEGREES = 45.0
 private val EG_MAPS_FORM_GUARD_SCRIPT = """
     (() => {
       const isAllowed = (value) => {
@@ -226,6 +227,7 @@ internal fun MapsScreen(
                         onValueChange = { query = it; selected = null },
                         placeholder = if (tab == 0) "Search crews, cities or regions" else "Search projects or places",
                         modifier = Modifier.padding(horizontal = 20.dp),
+                        onClear = { query = ""; selected = null },
                     )
                     NativeMapPanel(
                         data = current.data,
@@ -262,6 +264,7 @@ private sealed interface MapSelection {
 private enum class MarkerAppearance(val color: Int, val label: String, val markerSizeDp: Int = 44) {
     ActiveCrew(android.graphics.Color.rgb(36, 126, 70), "C"),
     InactiveCrew(android.graphics.Color.rgb(194, 120, 18), "C"),
+    RegionAggregate(android.graphics.Color.rgb(43, 94, 86), "R", 48),
     Grant(android.graphics.Color.rgb(30, 103, 163), "G", 44),
     GrantMedium(android.graphics.Color.rgb(0, 133, 119), "G", 48),
     GrantLarge(android.graphics.Color.rgb(116, 77, 161), "G", 52),
@@ -416,6 +419,7 @@ private fun NativeMapPanel(
                     },
                 )
             }
+            if (mode == MapMode.Crews) CrewMapLegend()
             Surface(
                 color = Color(0xE6FFFFFF),
                 shape = RoundedCornerShape(8.dp),
@@ -434,6 +438,33 @@ private fun NativeMapPanel(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CrewMapLegend() {
+    Surface(
+        color = Color(0xE6FFFFFF),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.padding(bottom = 6.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CrewLegendItem(Color(0xFF2B5E56), "Regions")
+            CrewLegendItem(Color(0xFF247E46), "Active")
+            CrewLegendItem(Color(0xFFC27812), "Inactive")
+        }
+    }
+}
+
+@Composable
+private fun CrewLegendItem(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(Modifier.width(8.dp).height(8.dp).clip(RoundedCornerShape(8.dp)).background(color))
+        Text(label, color = Color(0xFF33443B), fontSize = 10.sp)
     }
 }
 
@@ -669,6 +700,9 @@ private class NativeMapController {
             readyMap.uiSettings.isCompassEnabled = true
             readyMap.uiSettings.isAttributionEnabled = true
             readyMap.uiSettings.isLogoEnabled = true
+            readyMap.addOnCameraIdleListener {
+                if (generation == attachmentGeneration && mapView === view && !viewDestroyed) render()
+            }
             readyMap.setStyle(Style.Builder().fromJson(SATELLITE_STYLE)) {
                 if (generation != attachmentGeneration || mapView !== view || viewDestroyed) return@setStyle
                 styleReady = true
@@ -737,14 +771,20 @@ private class NativeMapController {
         markers.clear()
         val currentData = data ?: return
         if (mode == MapMode.Crews) {
-            currentData.crews.forEachIndexed { index, crew ->
-                if (matches(crew)) {
-                    val appearance = if (crew.status.equals("active", ignoreCase = true)) {
-                        MarkerAppearance.ActiveCrew
-                    } else {
-                        MarkerAppearance.InactiveCrew
+            if (visibleLongitudeSpan(currentMap) >= REGION_AGGREGATION_LONGITUDE_SPAN_DEGREES) {
+                currentData.regions.filter(::matches).forEach { region ->
+                    add(currentMap, "region:${region.id}", region.region, region.latitude, region.longitude, MarkerAppearance.RegionAggregate)
+                }
+            } else {
+                currentData.crews.forEachIndexed { index, crew ->
+                    if (matches(crew)) {
+                        val appearance = if (crew.status.equals("active", ignoreCase = true)) {
+                            MarkerAppearance.ActiveCrew
+                        } else {
+                            MarkerAppearance.InactiveCrew
+                        }
+                        add(currentMap, "crew:$index", crew.name, crew.lat, crew.lng, appearance)
                     }
-                    add(currentMap, "crew:$index", crew.name, crew.lat, crew.lng, appearance)
                 }
             }
         } else currentData.grants.forEachIndexed { index, grant ->
@@ -760,8 +800,18 @@ private class NativeMapController {
         }
     }
 
-    private fun matches(region: CrewRegion) = query.isBlank() || region.region.lowercase().contains(query) || region.id.contains(query)
-    private fun matches(crew: CrewLocation) = query.isBlank() || listOf(crew.name, crew.city, crew.country, crew.region).any { it.lowercase().contains(query) }
+    private fun visibleLongitudeSpan(currentMap: MapLibreMap): Double =
+        currentMap.projection.visibleRegion.latLngBounds.longitudeSpan
+            .takeIf(Double::isFinite)
+            ?.coerceIn(0.0, 360.0)
+            ?: 0.0
+
+    private fun matches(region: CrewRegion) = query.isBlank() ||
+        region.region.lowercase().contains(query) ||
+        region.id.contains(query) ||
+        data?.crews.orEmpty().any { it.region.equals(region.region, ignoreCase = true) && matches(it) }
+
+    private fun matches(crew: CrewLocation) = query.isBlank() || listOf(crew.name, crew.city, crew.state.orEmpty(), crew.country, crew.region, crew.status).any { it.lowercase().contains(query) }
     private fun matches(grant: ProjectGrant) = query.isBlank() || listOf(grant.project_title, grant.country_province).any { it.lowercase().contains(query) }
 
     private fun add(map: MapLibreMap, key: String, title: String, lat: Double, lng: Double, appearance: MarkerAppearance) {
