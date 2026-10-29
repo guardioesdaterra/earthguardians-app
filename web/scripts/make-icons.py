@@ -23,6 +23,7 @@ The Pages workflow runs the web-only mode remotely; native builds stay CI-only.
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -81,6 +82,60 @@ def emblem(size: int, white: bool, scale: float) -> Image.Image:
     return out
 
 
+def header_mark(size: int, white: bool) -> Image.Image:
+    """Crop the approved app-icon emblem into a transparent, header-sized mark."""
+    source_path = MASTER
+    master = Image.open(source_path).convert("RGB")
+    lum = ImageOps.grayscale(master)
+    alpha = lum.point(lambda v: 0 if v < THRESHOLD else v)
+    bounds = alpha.getbbox()
+    if bounds is None:
+        raise SystemExit(f"no logo pixels found in {source_path}")
+
+    alpha = alpha.crop(bounds)
+    target_side = round(size * 0.9)
+    scale = target_side / max(alpha.size)
+    width = max(1, round(alpha.width * scale))
+    height = max(1, round(alpha.height * scale))
+    alpha = alpha.resize((width, height), Image.LANCZOS)
+
+    color = Image.new("RGBA", alpha.size, (255, 255, 255, 255) if white else (0, 0, 0, 255))
+    color.putalpha(alpha)
+    out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    out.alpha_composite(color, ((size - width) // 2, (size - height) // 2))
+    return out
+
+
+def write_header_assets() -> None:
+    """Bundle the same official logo variants for Android and the iOS asset catalog."""
+    android_dir = REPO / "app/src/main/res/drawable-nodpi"
+    ios_dir = REPO / "ios/EarthGuardians/Assets.xcassets/EGBrandMark.imageset"
+    variants = [
+        ("on_light", "on-light", False),
+        ("on_dark", "on-dark", True),
+    ]
+
+    ios_dir.mkdir(parents=True, exist_ok=True)
+    for android_name, ios_name, white in variants:
+        image = header_mark(256, white=white)
+        save(image, android_dir / f"eg_brand_mark_{android_name}.png")
+        save(image, ios_dir / f"eg-brand-mark-{ios_name}.png")
+
+    contents = {
+        "images": [
+            {"filename": "eg-brand-mark-on-light.png", "idiom": "universal", "scale": "1x"},
+            {
+                "appearances": [{"appearance": "luminosity", "value": "dark"}],
+                "filename": "eg-brand-mark-on-dark.png",
+                "idiom": "universal",
+                "scale": "1x",
+            },
+        ],
+        "info": {"author": "xcode", "version": 1},
+    }
+    (ios_dir / "Contents.json").write_text(json.dumps(contents, indent=2) + "\n", encoding="utf-8")
+
+
 def composited(size: int, bg: tuple[int, int, int], white: bool, scale: float) -> Image.Image:
     base = Image.new("RGB", (size, size), bg)
     em = emblem(size, white, scale)
@@ -129,6 +184,7 @@ def main() -> None:
         save(fg, REPO / f"app/src/main/res/drawable-{dpi}/ic_launcher_monochrome.png")
 
     generate_web()
+    write_header_assets()
 
 
 if __name__ == "__main__":

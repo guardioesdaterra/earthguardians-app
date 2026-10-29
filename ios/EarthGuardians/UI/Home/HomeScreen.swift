@@ -246,15 +246,11 @@ private struct HomeChrome: ViewModifier {
     func body(content: Content) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                ZStack {
-                    Circle().fill(
-                        LinearGradient(colors: [palette.eco, palette.eco.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
-                    Text("EG")
-                        .font(.system(size: 15, weight: .black))
-                        .foregroundColor(.white)
-                }
-                .frame(width: 38, height: 38)
+                Image("EGBrandMark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 38, height: 38)
+                    .accessibilityHidden(true)
 
                 Text("EARTH GUARDIANS")
                     .font(.system(size: 12, weight: .bold))

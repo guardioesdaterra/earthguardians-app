@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
@@ -48,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.launch
+import org.earthguardians.app.R
 import org.earthguardians.app.data.model.EgEvent
 import org.earthguardians.app.data.model.EgPost
 import org.earthguardians.app.data.model.FeedUiState
@@ -99,15 +99,14 @@ internal fun HomeScreen(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(palette.eco, palette.eco.copy(alpha = 0.72f)))),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("EG", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black)
-            }
+            Image(
+                painter = painterResource(
+                    if (palette.isDark) R.drawable.eg_brand_mark_on_dark else R.drawable.eg_brand_mark_on_light,
+                ),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(38.dp),
+            )
             Spacer(Modifier.width(10.dp))
             Text(
                 text = "EARTH GUARDIANS",
