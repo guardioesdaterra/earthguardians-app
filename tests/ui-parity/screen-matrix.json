@@ -1,0 +1,46 @@
+{
+  "onboarding": {
+    "capture": "00-onboarding",
+    "android_expected_text": "Youth-led across six continents",
+    "minimum_distinct_approved_images": 3,
+    "maximum_overlay_alpha": 0.65
+  },
+  "screens": [
+    {
+      "name": "01-home",
+      "android_route": "earthguardians://home",
+      "ios_route": "home",
+      "android_expected_text": "Upcoming"
+    },
+    {
+      "name": "02-events",
+      "android_route": "earthguardians://events",
+      "ios_route": "events",
+      "android_expected_text": "Every crew gathering"
+    },
+    {
+      "name": "03-stories",
+      "android_route": "earthguardians://stories",
+      "ios_route": "stories",
+      "android_expected_text": "Shared on the blog"
+    },
+    {
+      "name": "04-maps",
+      "android_route": "earthguardians://maps",
+      "ios_route": "maps",
+      "android_expected_text": "EG-Maps"
+    },
+    {
+      "name": "05-more",
+      "android_route": "earthguardians://more",
+      "ios_route": "more",
+      "android_expected_text": "More"
+    },
+    {
+      "name": "06-section-donate",
+      "android_route": "earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate",
+      "ios_route": "section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate",
+      "android_expected_text": "Donate"
+    }
+  ]
+}

@@ -71,6 +71,18 @@ shot() { # $1 = name
     || echo "[shots][ERROR] screenshot failed for $1"
 }
 
+# ── Capture first-launch onboarding before route flows mark it complete ───────
+echo "[shots] screen 00-onboarding (first launch)"
+xcrun simctl terminate "$UDID" "$PKG" >/dev/null 2>&1 || true
+xcrun simctl launch "$UDID" "$PKG" -onboarding_complete 0 \
+  || { dump_app_log "app failed to launch into onboarding"; exit 1; }
+sleep 7
+if ! alive; then
+  dump_app_log "app process died during onboarding capture"
+  exit 1
+fi
+shot "00-onboarding"
+
 # Screens: name|launch route. Each screen is a fresh cold launch with the
 # route argument — deterministic, no dialogs, no leftover state.
 declare -a SCREENS=(

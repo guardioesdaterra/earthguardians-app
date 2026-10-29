@@ -72,6 +72,15 @@ final class DeeplinksTests: XCTestCase {
         }
     }
 
+    func testSectionPageArgumentPreservesNestedQueryAndFragment() throws {
+        let pageURL = "https://www.earthguardians.org/programs/youth%20climate?source=app&topic=climate%20justice#join"
+        let encodedURL = Deeplinks.encode(pageURL)
+        let route = try XCTUnwrap(Deeplinks.parseRoute("earthguardians://section?u=\(encodedURL)"))
+
+        XCTAssertEqual(route, "section?u=\(encodedURL)")
+        XCTAssertEqual(Deeplinks.decode(String(route.dropFirst("section?u=".count))), pageURL)
+    }
+
     func testSiteLinksBecomeSections() {
         XCTAssertEqual(
             Deeplinks.parseRoute("https://www.earthguardians.org/stmp"),

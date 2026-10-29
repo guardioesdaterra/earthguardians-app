@@ -148,6 +148,15 @@ done
 [ -n "$foreground_ok" ] || { dump_app_log "app never became the foreground activity (blank screen or crash)"; exit 1; }
 sleep 3
 
+# ── Capture the image-led first onboarding slide before dismissing it ─────────
+if wait_visible "Youth-led across six continents"; then
+  sleep 2
+  shot "00-onboarding"
+else
+  dump_app_log "onboarding first-slide content was not visible"
+  exit 1
+fi
+
 # ── Complete onboarding (Skip → onFinished) ──────────────────────────────────
 tap_text "Skip" 10 || tap_text "Get started" 4
 sleep 2

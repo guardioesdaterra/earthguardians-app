@@ -135,6 +135,16 @@ class DeeplinksTest {
     }
 
     @Test
+    fun `section page argument preserves nested query and fragment`() {
+        val pageUrl = "https://www.earthguardians.org/programs/youth%20climate?source=app&topic=climate%20justice#join"
+        val encodedUrl = Deeplinks.encode(pageUrl)
+        val route = Deeplinks.parseRoute("earthguardians://section?u=$encodedUrl")
+
+        assertEquals("section?u=$encodedUrl", route)
+        assertEquals(pageUrl, Deeplinks.decode(route!!.substringAfter("section?u=")))
+    }
+
+    @Test
     fun `off-site urls do not route`() {
         assertNull(Deeplinks.parseRoute("https://example.com/donate"))
         assertNull(Deeplinks.parseRoute("ftp://www.earthguardians.org/x"))
