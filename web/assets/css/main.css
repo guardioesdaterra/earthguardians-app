@@ -163,6 +163,8 @@ p { color: var(--muted); line-height: 1.55; }
 .home-story-copy { display: grid; flex: 1; gap: 4px; min-width: 0; }
 .home-story-copy strong { display: -webkit-box; overflow: hidden; color: var(--ink); font-size: 16px; line-height: 21px; font-weight: 600; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .home-story-copy small { color: var(--muted); font-size: 12px; }
+.home-story-row .home-story-copy strong { transform: translateY(-3.8px); }
+.home-story-row .home-story-copy small { transform: translateY(1.9px); }
 .home-story-chevron { display: block; flex: 0 0 18px; width: 18px; height: 18px; color: var(--muted); }
 .home-story-chevron svg { display: block; width: 18px; height: 18px; fill: currentColor; }
 .home-stats-grid, .home-actions-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
