@@ -120,6 +120,8 @@ fun EgAppRoot(graph: AppGraph) {
     EGAppTheme(mode) {
         val onboarded by graph.prefs.onboarded.collectAsState(initial = null)
         when (onboarded) {
+            // Only until DataStore's first emission — a fresh install maps to
+            // `false`, so this splash can never strand (see PrefsRepository).
             null -> Box(Modifier.fillMaxSize().background(egPalette.background))
             false -> OnboardingScreen(
                 graph = graph,

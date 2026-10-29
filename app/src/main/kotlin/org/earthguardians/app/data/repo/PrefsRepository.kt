@@ -36,18 +36,17 @@ class PrefsRepository(private val context: Context) {
 
     // ── Onboarding ────────────────────────────────────────────────────
 
-    /** null = not yet loaded (splash), false = show onboarding, true = main app. */
-    val onboarded: Flow<Boolean?> = store.data
+    /**
+     * Splash contract: `null` only while DataStore has not yet emitted. Once
+     * the key is absent on a fresh install we must show onboarding — mapping
+     * absent→null would trap every fresh install on the blank splash forever
+     * (nothing ever writes `false`).
+     */
+    val onboarded: Flow<Boolean> = store.data
         // Blanket fallback: a corrupt/unreadable store must never leave the
         // app on an empty splash screen — fresh state is recoverable.
         .catch { emit(emptyPreferences()) }
-        .map { prefs ->
-            when (prefs[KEY_ONBOARDED]) {
-                true -> true
-                false -> false
-                null -> null
-            }
-        }
+        .map { prefs -> prefs[KEY_ONBOARDED] ?: false }
 
     suspend fun completeOnboarding() {
         store.edit { it[KEY_ONBOARDED] = true }
