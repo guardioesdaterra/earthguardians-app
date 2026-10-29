@@ -40,7 +40,9 @@ REQUIRED_SCREEN_NAMES = [
     "04-maps",
     "05-more",
     "06-section-nested-query",
+    "07-bare-root-host",
 ]
+BARE_ROOT_SCREEN_NAME = "07-bare-root-host"
 
 
 def require(condition: bool, message: str) -> None:
@@ -629,6 +631,25 @@ def main() -> int:
 
     for screen in screens:
         android_route = screen["android_route"]
+        if screen["name"] == BARE_ROOT_SCREEN_NAME:
+            android_url = urlparse(android_route)
+            require(
+                android_url.scheme == "https" and android_url.netloc == "earthguardians.org" and
+                android_url.path == "" and not android_url.params and not android_url.query and
+                not android_url.fragment,
+                "bare-root Android route must be the raw official root URL",
+            )
+            ios_route = screen["ios_route"]
+            require(
+                ios_route.startswith("section?u=") and bool(ios_route.removeprefix("section?u=")),
+                "bare-root iOS route must use a non-empty section?u= argument",
+            )
+            require(
+                screen["android_expected_text"] == "",
+                "bare-root Android capture must not assert an unverified screen title",
+            )
+            continue
+
         require(android_route.startswith("earthguardians://"), f"invalid Android route: {android_route}")
         require(
             canonical_route(android_route.removeprefix("earthguardians://")) == canonical_route(screen["ios_route"]),
