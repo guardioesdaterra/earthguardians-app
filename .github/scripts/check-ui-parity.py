@@ -603,13 +603,13 @@ def check_native_maps(matrix: dict) -> None:
     ios_crews = source_section(
         ios_maps, "private struct CrewsMapScreen", "// MARK: - Project grants",
         "iOS crews map")
-    for token in (
-        "if let selectedLocation",
-        "crewLocationCard(selectedLocation)",
-        "else if let selectedRegion",
-        "crewRegionCard(selectedRegion)",
-    ):
-        require(token in ios_crews, f"iOS crews map detail selection is missing: {token}")
+    require(
+        re.search(
+            r"if\s+let\s+selectedRegion\s*\{[^{}]*\bcrewRegionCard\(\s*selectedRegion\s*\)[^{}]*\}\s*else\s+if\s+let\s+selectedLocation\s*\{[^{}]*\bcrewLocationCard\(\s*selectedLocation\s*\)[^{}]*\}",
+            ios_crews,
+        ) is not None,
+        "iOS crews map details must prefer the selected region before an individual selected crew",
+    )
     ios_locations = source_section(
         ios_maps, "private var crewLocationsMap: some View", "private var crewRegionsMap: some View",
         "iOS individual crews map")
