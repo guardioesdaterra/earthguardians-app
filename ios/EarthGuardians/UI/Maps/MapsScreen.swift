@@ -127,6 +127,20 @@ private struct CrewLocation: Codable, Identifiable, MapPoint {
     var searchText: String { "\(name) \(country) \(city) \(state) \(region) \(status)" }
 }
 
+private struct CrewRegion: Codable, Identifiable, MapPoint {
+    let id: String
+    let region: String
+    let latitude: Double
+    let longitude: Double
+    let activeCrews: Int
+    let inactiveCrews: Int
+    let totalMembers: Int
+    let countries: Int
+
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
+    var searchText: String { "\(region) \(id)" }
+}
+
 private struct ProjectGrant: Codable, Identifiable, MapPoint {
     var id: String { "\(project_title)-\(latitude)-\(longitude)" }
     let project_title: String
@@ -189,18 +203,30 @@ private struct CrewsMapScreen: View {
     let focusCrew: CrewLocation?
     let onFlyToProject: (ProjectGrant) -> Void
     @State private var locations: [CrewLocation] = []
+    @State private var regions: [CrewRegion] = []
     @State private var grants: [ProjectGrant] = []
     @State private var crewGrantMap: [String: [CrewGrantMatch]] = [:]
     @State private var state: MapsLoadState = .loading
     @State private var query = ""
     @State private var is3DEnabled = false
     @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 15, longitude: 10),
+        center: CLLocationCoordinate2D(latitude: 15, longitude: 0),
         span: MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 220)
     )
+    @State private var selectedRegion: CrewRegion?
     @State private var selectedLocation: CrewLocation?
 
     private var filteredLocations: [CrewLocation] { locations.filter { matches($0.searchText) } }
+    private var filteredRegions: [CrewRegion] { regions.filter { matches($0.searchText) } }
+    private var showsRegionAggregates: Bool { region.span.longitudeDelta >= crewRegionAggregationLongitudeSpan }
+    private var crewLegendText: String {
+        if showsRegionAggregates {
+            let active = filteredRegions.reduce(0) { $0 + $1.activeCrews }
+            let inactive = filteredRegions.reduce(0) { $0 + $1.inactiveCrews }
+            return "\(filteredRegions.count) regions · \(active) active · \(inactive) inactive"
+        }
+        return "\(filteredLocations.count) Crews · Active green · Inactive amber"
+    }
 
     var body: some View {
         VStack(spacing: 10) {
@@ -218,7 +244,7 @@ private struct CrewsMapScreen: View {
                 ZStack(alignment: .bottom) {
                     crewLocationsMap
                     .overlay(alignment: .topLeading) {
-                        mapLegend(text: "\(filteredLocations.count) individual crews")
+                        mapLegend(text: crewLegendText)
                             .padding(12)
                     }
                     .overlay(alignment: .bottomTrailing) {
@@ -226,7 +252,12 @@ private struct CrewsMapScreen: View {
                             .padding(10)
                     }
 
-                    if let selectedLocation {
+                    if let selectedRegion {
+                        crewRegionCard(selectedRegion)
+                            .padding(.horizontal, 14)
+                            .padding(.top, 14)
+                            .padding(.bottom, 56)
+                    } else if let selectedLocation {
                         crewLocationCard(selectedLocation)
                             .padding(.horizontal, 14)
                             .padding(.top, 14)
@@ -245,36 +276,73 @@ private struct CrewsMapScreen: View {
         .onChange(of: focusCrew?.id) { _ in
             if let focusCrew { focus(on: focusCrew) }
         }
+        .onChange(of: showsRegionAggregates) { showingRegions in
+            if showingRegions {
+                selectedLocation = nil
+            } else {
+                selectedRegion = nil
+            }
+        }
     }
 
+    @ViewBuilder
     private var crewLocationsMap: some View {
-        SatelliteMapView(
-            region: $region,
-            is3DEnabled: $is3DEnabled,
-            items: filteredLocations,
-            coordinate: { $0.coordinate },
-            title: { $0.name },
-            subtitle: { [$0.city, $0.state, $0.country].filter { !$0.isEmpty }.joined(separator: ", ") },
-            glyph: { _ in "C" },
-            tint: { $0.status.lowercased() == "active" ? .systemGreen : .systemOrange },
-            onSelect: { item in
-                selectedLocation = item
-                UIC.feedback()
-            },
-        )
-        .overlay(alignment: .topTrailing) { mapPitchToggle($is3DEnabled).padding(.top, 54).padding(.trailing, 12) }
+        ZStack(alignment: .topTrailing) {
+            if showsRegionAggregates {
+                SatelliteMapView(
+                    region: $region,
+                    is3DEnabled: $is3DEnabled,
+                    items: filteredRegions,
+                    coordinate: { $0.coordinate },
+                    title: { $0.region },
+                    subtitle: { "\($0.activeCrews) active · \($0.inactiveCrews) inactive" },
+                    glyph: { _ in "C" },
+                    tint: { _ in .systemBlue },
+                    onSelect: { item in
+                        selectedRegion = item
+                        UIC.feedback()
+                    },
+                )
+            } else {
+                SatelliteMapView(
+                    region: $region,
+                    is3DEnabled: $is3DEnabled,
+                    items: filteredLocations,
+                    coordinate: { $0.coordinate },
+                    title: { $0.name },
+                    subtitle: { [$0.city, $0.state, $0.country].filter { !$0.isEmpty }.joined(separator: ", ") },
+                    glyph: { _ in "C" },
+                    tint: { $0.status.lowercased() == "active" ? .systemGreen : .systemOrange },
+                    onSelect: { item in
+                        selectedLocation = item
+                        UIC.feedback()
+                    },
+                )
+            }
+            mapPitchToggle($is3DEnabled).padding(.top, 54).padding(.trailing, 12)
+        }
         .frame(minHeight: 430)
     }
 
     private func load() {
         guard state == .loading else { return }
         do {
+            regions = try MapsDataLoader.load("crew-regions", as: [CrewRegion].self)
             locations = try MapsDataLoader.load("crew-locations", as: [CrewLocation].self)
             grants = try MapsDataLoader.load("project-grants", as: [ProjectGrant].self)
             crewGrantMap = try MapsDataLoader.load("crew-grants-map", as: [String: [CrewGrantMatch]].self)
             state = locations.isEmpty ? .empty : .loaded
         } catch {
             state = .failed(error.localizedDescription)
+        }
+    }
+
+    private func crewRegionCard(_ item: CrewRegion) -> some View {
+        detailCard(title: item.region, subtitle: "", icon: "globe.americas.fill") {
+            detailRow("Active crews", value: "\(item.activeCrews)")
+            detailRow("Inactive crews", value: "\(item.inactiveCrews)")
+            detailRow("Members", value: "\(item.totalMembers)")
+            detailRow("Countries", value: "\(item.countries)")
         }
     }
 
@@ -361,7 +429,7 @@ private struct ProjectGrantsMapScreen: View {
     @State private var is3DEnabled = false
     @State private var selectedGrant: ProjectGrant?
     @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 10, longitude: 10),
+        center: CLLocationCoordinate2D(latitude: 15, longitude: 0),
         span: MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 220)
     )
 
@@ -612,6 +680,7 @@ private struct NearbyProject: Identifiable {
     var id: String { project.id }
 }
 
+private let crewRegionAggregationLongitudeSpan = 45.0
 private let nearbyCrewMaxDistanceKm = 150.0
 
 private func nearestCrews(to coordinate: CLLocationCoordinate2D, in crews: [CrewLocation], excluding excluded: CrewLocation? = nil) -> [NearbyCrew] {
