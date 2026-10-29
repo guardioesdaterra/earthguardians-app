@@ -392,7 +392,7 @@ p { color: var(--muted); line-height: 1.55; }
 }
 @media (max-width: 460px) {
   .app-main { width: calc(100% - 40px); }
-  .app-header { min-height: 56px; padding-top: 8px; padding-bottom: 8px; }
+  .app-header { min-height: 48px; padding-top: 4px; padding-bottom: 4px; }
   .brand { gap: 11px; }
   .brand-copy strong { font-size: 12px; letter-spacing: .14em; }
   .header-actions { gap: 5px; }
