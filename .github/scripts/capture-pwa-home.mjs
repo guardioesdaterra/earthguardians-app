@@ -42,6 +42,9 @@ try {
     serviceWorkers: 'block',
   })
   const page = await context.newPage()
+  await page.addInitScript(() => {
+    window.localStorage['eg_onboarding_complete'] = 'true'
+  })
   await page.route('**/eg-cache/eg_feed_cache.json', route => route.fulfill({
     status: 200,
     contentType: 'application/json; charset=utf-8',
