@@ -50,8 +50,8 @@ object Deeplinks {
         }
 
         // Web app links: every page of the site opens in the themed in-app browser.
-        if (uri.startsWith("http://") || uri.startsWith("https://")) {
-            val host = uri.substringAfter("://").substringBefore('/')
+        if (uri.startsWith("http://", ignoreCase = true) || uri.startsWith("https://", ignoreCase = true)) {
+            val host = runCatching { java.net.URI(uri).host?.lowercase() }.getOrNull()
             if (host == "www.earthguardians.org" || host == "earthguardians.org") {
                 return "section?u=${encode(uri)}"
             }

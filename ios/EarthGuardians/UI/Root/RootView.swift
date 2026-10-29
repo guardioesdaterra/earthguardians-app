@@ -113,6 +113,7 @@ struct RootView: View {
                 consumePendingRoute()
             }
             .egOnChange(graph.routeBus.pending) { consumePendingRoute() }
+            .egOnChange(graph.onboarded) { consumePendingRoute() }
         }
     }
 
@@ -221,7 +222,9 @@ struct RootView: View {
     // MARK: External route consumption
 
     private func consumePendingRoute() {
-        guard let raw = graph.routeBus.pending else { return }
+        // A cold-start route must survive the splash/onboarding gate; consuming
+        // it before the tab NavigationStacks exist silently leaves the app Home.
+        guard graph.onboarded == true, let raw = graph.routeBus.pending else { return }
         graph.routeBus.consume()
         UIC.feedback()
 

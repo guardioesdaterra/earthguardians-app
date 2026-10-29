@@ -56,10 +56,8 @@ public enum Deeplinks {
         }
 
         // Web app links: every page of the site opens in the themed in-app browser.
-        if uriString.hasPrefix("http://") || uriString.hasPrefix("https://") {
-            let host = uriString
-                .droppingPrefix("https://").droppingPrefix("http://")
-                .split(separator: "/").first.map(String.init) ?? ""
+        if uriString.lowercased().hasPrefix("http://") || uriString.lowercased().hasPrefix("https://") {
+            let host = URLComponents(string: uriString)?.host?.lowercased() ?? ""
             if host == "www.earthguardians.org" || host == "earthguardians.org" {
                 return "section?u=\(encode(uriString))"
             }

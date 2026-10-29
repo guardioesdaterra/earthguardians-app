@@ -24,7 +24,8 @@ struct EarthGuardiansApp: App {
                     // 'Open in Earth Guardians' confirmation sheet over every
                     // capture. Posted async: RootView must attach first
                     // (egOnChange uses onChange(initial: false)).
-                    if let launchRoute = UserDefaults.standard.string(forKey: "eg_launch_route") {
+                    if let launchRoute = launchArgument(named: "eg_launch_route")
+                        ?? UserDefaults.standard.string(forKey: "eg_launch_route") {
                         DispatchQueue.main.async {
                             if let route = Deeplinks.parseRoute("earthguardians://\(launchRoute)") {
                                 graph.routeBus.post(route)
@@ -43,6 +44,16 @@ struct EarthGuardiansApp: App {
                     graph.routeBus.post(note.object as? String)
                 }
         }
+    }
+
+    /// `simctl launch -key value` supplies process arguments on every iOS tier;
+    /// UserDefaults remains a fallback for Xcode's argument-domain behavior.
+    private func launchArgument(named key: String) -> String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-\(key)"), index + 1 < arguments.count else {
+            return nil
+        }
+        return arguments[index + 1]
     }
 }
 

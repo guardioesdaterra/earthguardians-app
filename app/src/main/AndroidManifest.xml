@@ -50,6 +50,9 @@
                 <data android:scheme="https"
                     android:host="www.earthguardians.org"
                     android:pathPrefix="/" />
+                <data android:scheme="https"
+                    android:host="earthguardians.org"
+                    android:pathPrefix="/" />
             </intent-filter>
         </activity>
 
