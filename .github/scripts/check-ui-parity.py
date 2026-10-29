@@ -611,21 +611,32 @@ def check_native_maps(matrix: dict) -> None:
         "iOS crews map details must prefer the selected region before an individual selected crew",
     )
     ios_locations = source_section(
-        ios_maps, "private var crewLocationsMap: some View", "private var crewRegionsMap: some View",
-        "iOS individual crews map")
-    ios_regions = source_section(
-        ios_maps, "private var crewRegionsMap: some View", "private func load()",
-        "iOS crew regions map")
+        ios_maps, "private var crewLocationsMap: some View", "private func load()",
+        "iOS shared crews map")
+    crew_map_branches = re.search(
+        r"if\s+showsRegionAggregates\s*\{(?P<regions>(?:(?!\}\s*else\s*\{)[\s\S])*)\}\s*else\s*\{(?P<locations>[\s\S]*)",
+        ios_locations,
+    )
+    require(crew_map_branches is not None,
+            "iOS shared crews map must branch between aggregate regions and individual locations")
+    for source, tokens, label in (
+        (crew_map_branches.group("regions"),
+         ("SatelliteMapView(", "items: filteredRegions", "selectedRegion = item"),
+         "crew region"),
+        (crew_map_branches.group("locations"),
+         ("SatelliteMapView(", "items: filteredLocations", "selectedLocation = item"),
+         "individual crew"),
+    ):
+        for token in tokens:
+            require(token in source, f"iOS {label} branch is missing its data/selection pattern: {token}")
+    for token in ("selectedLocation = nil", "selectedRegion = nil"):
+        require(token in ios_crews, f"iOS crews map must clear the stale opposite selection: {token}")
     ios_grants = source_section(
         ios_maps, "private struct ProjectGrantsMapScreen", "// MARK: - Shared map UI",
         "iOS project grants map")
-    for source, tokens, label in (
-        (ios_locations, ("MapAnnotation", "selectedLocation = item", "selectedRegion = nil"), "individual crew marker"),
-        (ios_regions, ("MapAnnotation", "selectedRegion = item", "selectedLocation = nil"), "crew region marker"),
-        (ios_grants, ("MapAnnotation", "selectedGrant = grant", "if let selectedGrant", "detailCard(title: selectedGrant.project_title"), "project grant marker"),
-    ):
-        for token in tokens:
-            require(token in source, f"iOS {label} selection/detail contract is missing: {token}")
+    for token in ("MapAnnotation", "selectedGrant = grant", "if let selectedGrant",
+                  "detailCard(title: selectedGrant.project_title"):
+        require(token in ios_grants, f"iOS project grant marker selection/detail contract is missing: {token}")
     for token in (
         'detailCard(title: item.region',
         'detailRow("Active crews"',
