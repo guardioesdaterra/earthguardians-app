@@ -1,241 +1,397 @@
 import SwiftUI
-import EGCore
+import MapKit
 
-/**
- * EG-Maps — Earth Guardians' cartography inside the app: the interactive
- * crew/projects atlas, a regional directory, and the endangered species map,
- * with deep links into the full interactive web maps.
- */
+/// Native, offline-first maps for the public Earth Guardians map datasets.
+/// The manager-only grants portal is not bundled or queried by these screens.
 struct MapsScreen: View {
     @Environment(\.egPalette) private var palette
-
     let openURL: (String) -> Void
-    @State private var segment = 0
+    @State private var selection = 0
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 14) {
-                LargeTitle("EG-Maps", subtitle: "The atlas of guardians, crews and species.")
-                EgSegmented(
-                    options: ["Atlas", "Regions", "Species"],
-                    selection: $segment
-                )
+                LargeTitle("Maps", subtitle: "Crews and projects caring for our shared home.")
+                EgSegmented(options: ["Crews", "Project Grants"], selection: $selection)
             }
+            .padding(.horizontal, 20)
             .padding(.top, 6)
 
-            switch segment {
-            case 0: AtlasTab(openURL: openURL)
-            case 1: RegionsTab()
-            default: SpeciesTab()
+            if selection == 0 {
+                CrewsMapScreen()
+            } else {
+                ProjectGrantsMapScreen()
             }
         }
         .background(palette.background.ignoresSafeArea())
     }
 }
 
-// MARK: - Atlas
+// MARK: - Public map models and local loader
 
-private struct AtlasTab: View {
-    @Environment(\.egPalette) private var palette
-    let openURL: (String) -> Void
+private struct CrewRegion: Codable, Identifiable, MapPoint {
+    let id: String
+    let region: String
+    let latitude: Double
+    let longitude: Double
+    let activeCrews: Int
+    let inactiveCrews: Int
+    let totalMembers: Int
+    let countries: Int
 
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                GlassCard {
-                    HStack(spacing: 12) {
-                        Image(systemName: "globe")
-                            .font(.system(size: 26))
-                            .foregroundColor(palette.eco)
-                        Text("One planet, one crew list.")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(palette.onBackground)
-                    }
-                    Text("The interactive EG-Maps atlas links every crew, campaign and program on the planet. Open it right here, themed to your settings.")
-                        .font(.system(size: 14))
-                        .lineSpacing(4)
-                        .foregroundColor(palette.muted)
-                }
-
-                MapEntryCard(
-                    title: "Interactive EG-Maps",
-                    subtitle: "Crews, projects and campaigns — the full live map",
-                    tone: .green,
-                    path: "eg-maps",
-                    openURL: openURL
-                )
-                MapEntryCard(
-                    title: "Endangered Species Map",
-                    subtitle: "Species on the edge, region by region",
-                    tone: .red,
-                    path: "endangered-species-map",
-                    openURL: openURL
-                )
-                MapEntryCard(
-                    title: "Grant Map",
-                    subtitle: "Micro-grants funding crew projects",
-                    tone: .green,
-                    path: "eg-grants",
-                    openURL: openURL
-                )
-                MapEntryCard(
-                    title: "Our Programs",
-                    subtitle: "Programs, grants and trainings overview",
-                    tone: .neutral,
-                    path: "eg-programs",
-                    openURL: openURL
-                )
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 96)
-        }
-    }
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
+    var searchText: String { "\(region) \(activeCrews) \(inactiveCrews)" }
 }
 
-private struct MapEntryCard: View {
-    let title: String
-    let subtitle: String
-    let tone: PillTone
-    let path: String
-    let openURL: (String) -> Void
-
-    var body: some View {
-        BentoTile(title, subtitle, systemImage: "map.fill", tone: tone) {
-            if let section = SiteCatalog.byPath(path) {
-                openURL(section.url)
-            }
-        }
-    }
-}
-
-// MARK: - Regions
-
-private struct RegionViewData: Identifiable {
-    let id = UUID()
+private struct CrewLocation: Codable, Identifiable, MapPoint {
+    var id: String { "\(name)-\(city)-\(lat)-\(lng)" }
     let name: String
-    let detail: String
-    let badge: String
-}
-
-private let regions: [RegionViewData] = [
-    RegionViewData(name: "Africa", detail: "30 countries with reforestation, eduball and youth camps", badge: "30+ crews"),
-    RegionViewData(name: "North America", detail: "Crew councils, policy strikes and civic power", badge: "Crews active"),
-    RegionViewData(name: "Latin America", detail: "SOS Horta Parque & the 7k tree project in Brazil", badge: "8 partnerships"),
-    RegionViewData(name: "Asia-Pacific", detail: "Bhutan, India, New Zealand — planting & organic farms", badge: "Crews active"),
-    RegionViewData(name: "Caribbean", detail: "Island resilience and reef protection programs", badge: "Crews active"),
-    RegionViewData(name: "Europe", detail: "Udine & Salt Spring-style city crews", badge: "Crews active"),
-]
-
-private struct RegionsTab: View {
-    @Environment(\.egPalette) private var palette
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Earth Guardians crews run on every continent. Regions coordinate councils, trainings and campaigns.")
-                    .font(.system(size: 14))
-                    .lineSpacing(4)
-                    .foregroundColor(palette.muted)
-
-                ForEach(regions) { region in
-                    GlassCard(cornerRadius: EGRadius.tile) {
-                        HStack(spacing: 12) {
-                            ZStack {
-                                Circle().fill(
-                                    LinearGradient(
-                                        colors: [palette.eco.opacity(0.7), palette.accent.opacity(0.7)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                Text(String(region.name.prefix(2)).uppercased())
-                                    .font(.system(size: 15, weight: .black))
-                                    .foregroundColor(.white)
-                            }
-                            .frame(width: 44, height: 44)
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(region.name)
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(palette.onBackground)
-                                Text(region.detail)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(palette.muted)
-                                    .lineLimit(2)
-                            }
-                            Spacer()
-                            EgPill(region.badge, tone: .green)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 96)
-        }
-    }
-}
-
-// MARK: - Species
-
-private struct SpeciesViewData: Identifiable {
-    let id = UUID()
-    let name: String
+    let country: String
+    let city: String
+    let state: String
+    let region: String
     let status: String
-    let note: String
-    let critical: Bool
+    let lat: Double
+    let lng: Double
+
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lng) }
+    var searchText: String { "\(name) \(country) \(city) \(state) \(region) \(status)" }
 }
 
-private let species: [SpeciesViewData] = [
-    SpeciesViewData(name: "Monarch Butterfly", status: "Endangered", note: "Pollinator decline across the Americas", critical: true),
-    SpeciesViewData(name: "Vaquita Porpoise", status: "Critically Endangered", note: "Fewer than 20 remain in the Gulf of California", critical: true),
-    SpeciesViewData(name: "Bumblebee", status: "Vulnerable", note: "Bee awareness crews build habitat corridors", critical: false),
-    SpeciesViewData(name: "Sea Turtle", status: "Endangered", note: "Nest patrol programs on Atlantic shores", critical: true),
-    SpeciesViewData(name: "Polar Bear", status: "Vulnerable", note: "Arctic ice loss drives starvation cycles", critical: false),
-    SpeciesViewData(name: "Axolotl", status: "Critically Endangered", note: "Fights for wetland survival near Mexico City", critical: true),
-    SpeciesViewData(name: "Coral Reefs", status: "Bleaching", note: "Guardians run reef restoration dive crews", critical: true),
-    SpeciesViewData(name: "Yellowstone Bison", status: "At Risk", note: "Migration & range conflict campaigns", critical: false),
-]
+private struct ProjectGrant: Codable, Identifiable, MapPoint {
+    var id: String { "\(project_title)-\(latitude)-\(longitude)" }
+    let project_title: String
+    let country_province: String
+    let latitude: Double
+    let longitude: Double
+    let direct_beneficiaries: Int
+    let indirect_beneficiaries: Int
 
-private struct SpeciesTab: View {
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
+    var searchText: String { "\(project_title) \(country_province)" }
+}
+
+private protocol MapPoint {
+    var coordinate: CLLocationCoordinate2D { get }
+    var searchText: String { get }
+}
+
+private enum MapsDataLoader {
+    static func load<T: Decodable>(_ name: String, as type: T.Type) throws -> T {
+        let url = Bundle.main.url(forResource: name, withExtension: "json", subdirectory: "Maps")
+            ?? Bundle.main.url(forResource: name, withExtension: "json")
+        guard let url else { throw MapsError.missingAsset(name) }
+        do {
+            return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
+        } catch {
+            throw MapsError.invalidAsset(name, error)
+        }
+    }
+}
+
+private enum MapsError: LocalizedError {
+    case missingAsset(String)
+    case invalidAsset(String, Error)
+
+    var errorDescription: String {
+        switch self {
+        case .missingAsset(let name): return "The map asset \(name).json could not be found."
+        case .invalidAsset(let name, _): return "The map asset \(name).json could not be read."
+        }
+    }
+}
+
+private enum MapsLoadState: Equatable {
+    case loading
+    case loaded
+    case empty
+    case failed(String)
+}
+
+// MARK: - Crews
+
+private struct CrewsMapScreen: View {
     @Environment(\.egPalette) private var palette
+    @State private var regions: [CrewRegion] = []
+    @State private var locations: [CrewLocation] = []
+    @State private var state: MapsLoadState = .loading
+    @State private var query = ""
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 15, longitude: 10),
+        span: MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 220)
+    )
+    @State private var selectedRegion: CrewRegion?
+    @State private var selectedLocation: CrewLocation?
+
+    private var isCloseZoom: Bool { region.span.longitudeDelta < 45 }
+    private var filteredRegions: [CrewRegion] { regions.filter { matches($0.searchText) } }
+    private var filteredLocations: [CrewLocation] { locations.filter { matches($0.searchText) } }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    Image(systemName: "leaf.fill")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(palette.eco)
-                    Text("Species the crews fight for")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(palette.onBackground)
-                }
+        VStack(spacing: 10) {
+            mapSearchField(text: $query, placeholder: "Search crews, cities or regions")
+                .padding(.horizontal, 20)
 
-                ForEach(species) { item in
-                    GlassCard(cornerRadius: EGRadius.tile) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(item.name)
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(palette.onBackground)
-                                Text(item.note)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(palette.muted)
-                            }
-                            Spacer()
-                            EgPill(item.status, tone: item.critical ? .red : .green)
+            switch state {
+            case .loading:
+                mapPlaceholder(message: "Loading public crew map…")
+            case .failed(let message):
+                mapPlaceholder(message: message, icon: "exclamationmark.triangle")
+            case .empty:
+                mapPlaceholder(message: "No crew locations are available.")
+            case .loaded:
+                ZStack(alignment: .bottom) {
+                    Group {
+                        if isCloseZoom {
+                            crewLocationsMap
+                        } else {
+                            crewRegionsMap
                         }
                     }
-                }
+                    .overlay(alignment: .topLeading) {
+                        mapLegend(text: isCloseZoom ? "Individual crews" : "Regional overview")
+                            .padding(12)
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        attributionLabel()
+                            .padding(10)
+                    }
 
-                Text("Full interactive species map lives on earthguardians.org — open it from the Atlas tab.")
-                    .font(.system(size: 12))
-                    .lineSpacing(3)
-                    .foregroundColor(palette.muted)
+                    if let selectedLocation {
+                        crewLocationCard(selectedLocation)
+                            .padding(14)
+                    } else if let selectedRegion {
+                        crewRegionCard(selectedRegion)
+                            .padding(14)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
+                .padding(.horizontal, 12)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 96)
         }
+        .padding(.bottom, 8)
+        .task { load() }
+    }
+
+    private var crewLocationsMap: some View {
+        Map(coordinateRegion: $region, annotationItems: filteredLocations) { item in
+            MapAnnotation(coordinate: item.coordinate) {
+                Button {
+                    selectedLocation = item
+                    selectedRegion = nil
+                    UIC.feedback()
+                } label: {
+                    mapPin(color: palette.eco, icon: "person.3.fill")
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(minHeight: 430)
+    }
+
+    private var crewRegionsMap: some View {
+        Map(coordinateRegion: $region, annotationItems: filteredRegions) { item in
+            MapAnnotation(coordinate: item.coordinate) {
+                Button {
+                    selectedRegion = item
+                    selectedLocation = nil
+                    UIC.feedback()
+                } label: {
+                    mapPin(color: palette.accent, icon: "globe.americas.fill")
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(minHeight: 430)
+    }
+
+    private func load() {
+        guard state == .loading else { return }
+        do {
+            regions = try MapsDataLoader.load("crew-regions", as: [CrewRegion].self)
+            locations = try MapsDataLoader.load("crew-locations", as: [CrewLocation].self)
+            state = regions.isEmpty && locations.isEmpty ? .empty : .loaded
+        } catch {
+            state = .failed(error.localizedDescription)
+        }
+    }
+
+    private func crewRegionCard(_ item: CrewRegion) -> some View {
+        detailCard(title: item.region, subtitle: "Regional crew overview", icon: "globe.americas.fill") {
+            detailRow("Active crews", value: "\(item.activeCrews)")
+            detailRow("Members", value: "\(item.totalMembers)")
+            detailRow("Countries", value: "\(item.countries)")
+        }
+    }
+
+    private func crewLocationCard(_ item: CrewLocation) -> some View {
+        detailCard(title: item.name, subtitle: [item.city, item.state, item.country].filter { !$0.isEmpty }.joined(separator: ", "), icon: "person.3.fill") {
+            detailRow("Region", value: item.region)
+            detailRow("Status", value: item.status.capitalized)
+        }
+    }
+
+    private func matches(_ text: String) -> Bool {
+        query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || text.localizedCaseInsensitiveContains(query)
+    }
+}
+
+// MARK: - Project grants
+
+private struct ProjectGrantsMapScreen: View {
+    @Environment(\.egPalette) private var palette
+    @State private var grants: [ProjectGrant] = []
+    @State private var state: MapsLoadState = .loading
+    @State private var query = ""
+    @State private var selectedGrant: ProjectGrant?
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 10, longitude: 10),
+        span: MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 220)
+    )
+
+    private var filteredGrants: [ProjectGrant] { grants.filter { query.isEmpty || $0.searchText.localizedCaseInsensitiveContains(query) } }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            mapSearchField(text: $query, placeholder: "Search projects or locations")
+                .padding(.horizontal, 20)
+
+            switch state {
+            case .loading:
+                mapPlaceholder(message: "Loading public grant map…")
+            case .failed(let message):
+                mapPlaceholder(message: message, icon: "exclamationmark.triangle")
+            case .empty:
+                mapPlaceholder(message: "No public grant projects are available.")
+            case .loaded:
+                ZStack(alignment: .bottom) {
+                    Map(coordinateRegion: $region, annotationItems: filteredGrants) { grant in
+                        MapAnnotation(coordinate: grant.coordinate) {
+                            Button {
+                                selectedGrant = grant
+                                UIC.feedback()
+                            } label: {
+                                mapPin(color: palette.eco, icon: "leaf.fill")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .frame(minHeight: 430)
+                    .overlay(alignment: .topLeading) {
+                        mapLegend(text: "\(filteredGrants.count) public projects")
+                            .padding(12)
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        attributionLabel()
+                            .padding(10)
+                    }
+
+                    if let selectedGrant {
+                        detailCard(title: selectedGrant.project_title,
+                                   subtitle: selectedGrant.country_province,
+                                   icon: "leaf.fill") {
+                            detailRow("Direct beneficiaries", value: "\(selectedGrant.direct_beneficiaries)")
+                            detailRow("Indirect beneficiaries", value: "\(selectedGrant.indirect_beneficiaries)")
+                        }
+                        .padding(14)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
+                .padding(.horizontal, 12)
+            }
+        }
+        .padding(.bottom, 8)
+        .task { load() }
+    }
+
+    private func load() {
+        guard state == .loading else { return }
+        do {
+            grants = try MapsDataLoader.load("project-grants", as: [ProjectGrant].self)
+            state = grants.isEmpty ? .empty : .loaded
+        } catch {
+            state = .failed(error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - Shared map UI
+
+private func mapSearchField(text: Binding<String>, placeholder: String) -> some View {
+    HStack(spacing: 8) {
+        Image(systemName: "magnifyingglass").foregroundColor(.secondary)
+        TextField(placeholder, text: text)
+            .textInputAutocapitalization(.never)
+        if !text.wrappedValue.isEmpty {
+            Button { text.wrappedValue = "" } label: {
+                Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+    .font(.system(size: 14))
+    .padding(.horizontal, 12)
+    .padding(.vertical, 10)
+    .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: EGRadius.tile, style: .continuous))
+}
+
+private func mapPin(color: Color, icon: String) -> some View {
+    Image(systemName: icon)
+        .font(.system(size: 13, weight: .bold))
+        .foregroundColor(.white)
+        .padding(8)
+        .background(Circle().fill(color))
+        .overlay(Circle().stroke(Color.white, lineWidth: 2))
+        .shadow(color: .black.opacity(0.22), radius: 4, y: 2)
+}
+
+private func mapLegend(text: String) -> some View {
+    Text(text)
+        .font(.system(size: 12, weight: .semibold))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(.ultraThinMaterial, in: Capsule())
+}
+
+private func attributionLabel() -> some View {
+    Text("Map data © Apple")
+        .font(.system(size: 10, weight: .medium))
+        .foregroundColor(.secondary)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 4)
+        .background(.thinMaterial, in: Capsule())
+}
+
+private func mapPlaceholder(message: String, icon: String = "map") -> some View {
+    VStack(spacing: 10) {
+        Image(systemName: icon).font(.system(size: 26)).foregroundColor(.secondary)
+        Text(message).font(.system(size: 14, weight: .medium)).multilineTextAlignment(.center)
+    }
+    .foregroundColor(.secondary)
+    .frame(maxWidth: .infinity, minHeight: 430)
+    .padding(24)
+}
+
+private func detailCard<Content: View>(title: String, subtitle: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
+    GlassCard(cornerRadius: EGRadius.tile) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: icon).foregroundColor(.accentColor)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(.system(size: 15, weight: .bold)).lineLimit(2)
+                    if !subtitle.isEmpty { Text(subtitle).font(.system(size: 12)).foregroundColor(.secondary).lineLimit(2) }
+                }
+            }
+            content()
+        }
+    }
+}
+
+private func detailRow(_ title: String, value: String) -> some View {
+    HStack {
+        Text(title).font(.system(size: 12)).foregroundColor(.secondary)
+        Spacer()
+        Text(value).font(.system(size: 12, weight: .semibold))
     }
 }
 
@@ -259,9 +415,7 @@ struct EgSegmented: View {
                         .foregroundColor(selected ? palette.background : palette.muted)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(
-                            Capsule().fill(selected ? palette.onBackground : Color.clear)
-                        )
+                        .background(Capsule().fill(selected ? palette.onBackground : Color.clear))
                 }
                 .buttonStyle(PressableStyle())
             }

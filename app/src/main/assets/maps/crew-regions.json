@@ -1,0 +1,72 @@
+[
+  {
+    "id": "north-america",
+    "region": "North America",
+    "latitude": 40,
+    "longitude": -100,
+    "activeCrews": 13,
+    "inactiveCrews": 5,
+    "totalMembers": 146,
+    "countries": 3
+  },
+  {
+    "id": "south-america",
+    "region": "South America",
+    "latitude": -15,
+    "longitude": -60,
+    "activeCrews": 7,
+    "inactiveCrews": 1,
+    "totalMembers": 55,
+    "countries": 4
+  },
+  {
+    "id": "europe",
+    "region": "Europe",
+    "latitude": 50,
+    "longitude": 10,
+    "activeCrews": 8,
+    "inactiveCrews": 1,
+    "totalMembers": 87,
+    "countries": 5
+  },
+  {
+    "id": "africa",
+    "region": "Africa",
+    "latitude": 2,
+    "longitude": 20,
+    "activeCrews": 80,
+    "inactiveCrews": 17,
+    "totalMembers": 782,
+    "countries": 25
+  },
+  {
+    "id": "east-asia",
+    "region": "East Asia",
+    "latitude": 35,
+    "longitude": 120,
+    "activeCrews": 4,
+    "inactiveCrews": 2,
+    "totalMembers": 42,
+    "countries": 3
+  },
+  {
+    "id": "south-asia",
+    "region": "South Asia",
+    "latitude": 22,
+    "longitude": 78,
+    "activeCrews": 13,
+    "inactiveCrews": 0,
+    "totalMembers": 121,
+    "countries": 7
+  },
+  {
+    "id": "oceania",
+    "region": "Oceania",
+    "latitude": -25,
+    "longitude": 135,
+    "activeCrews": 0,
+    "inactiveCrews": 0,
+    "totalMembers": 0,
+    "countries": 0
+  }
+]
