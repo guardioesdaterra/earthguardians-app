@@ -27,7 +27,10 @@ test('Nuxt build script and GitHub Pages base path remain configurable', () => {
 })
 
 test('Nuxt prerender list keeps the PWA and app routes needed on GitHub Pages', () => {
-  const routeBlock = config.match(/routes:\s*\[([\s\S]*?)\]/)
+  const prerenderBlock = config.match(/prerender:\s*\{([\s\S]*?)\n\s*\},/)
+  assert.ok(prerenderBlock, 'Nuxt prerender config must exist')
+  assert.match(prerenderBlock[1], /\bcrawlLinks\s*:\s*false\b/, 'SSG must not crawl nested external deep-link URLs')
+  const routeBlock = prerenderBlock[1].match(/routes:\s*\[([\s\S]*?)\]/)
   assert.ok(routeBlock, 'Nuxt prerender route list must exist')
   const routes = [...routeBlock[1].matchAll(/'([^']+)'/g)].map((match) => match[1])
   assert.deepEqual(routes, expectedRoutes)

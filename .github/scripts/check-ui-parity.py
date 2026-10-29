@@ -7,7 +7,7 @@ import hashlib
 import re
 import sys
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[2]
 MATRIX_PATH = ROOT / "tests/ui-parity/screen-matrix.json"
@@ -32,7 +32,7 @@ REQUIRED_SCREEN_NAMES = [
     "03-stories",
     "04-maps",
     "05-more",
-    "06-section-donate",
+    "06-section-nested-query",
 ]
 
 
@@ -51,6 +51,17 @@ def screenshot_entries(path: Path) -> list[str]:
     match = re.search(r"declare -a SCREENS=\(\s*(.*?)\s*\)", text, re.DOTALL)
     require(match is not None, f"{path.relative_to(ROOT)} has no SCREENS array")
     return re.findall(r'^\s*"([^\"]+)"\s*$', match.group(1), re.MULTILINE)
+
+
+def canonical_route(route: str) -> str:
+    section_prefix = "section?u="
+    if not route.startswith(section_prefix):
+        return route
+
+    destination = route.removeprefix(section_prefix)
+    if re.match(r"^https?%3A%2F%2F", destination, re.IGNORECASE):
+        destination = unquote(destination)
+    return section_prefix + quote(destination, safe="-._~")
 
 
 def check_onboarding_capture(matrix: dict, android_script: str, ios_script: str) -> None:
@@ -471,7 +482,7 @@ def main() -> int:
         android_route = screen["android_route"]
         require(android_route.startswith("earthguardians://"), f"invalid Android route: {android_route}")
         require(
-            android_route.removeprefix("earthguardians://") == screen["ios_route"],
+            canonical_route(android_route.removeprefix("earthguardians://")) == canonical_route(screen["ios_route"]),
             f"platform route mismatch for {screen['name']}",
         )
         require(bool(screen["android_expected_text"].strip()), f"missing Android UI assertion for {screen['name']}")
