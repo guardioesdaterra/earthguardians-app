@@ -15,8 +15,11 @@ mkdir -p "$SHOTS"
 ADB="adb"
 
 apk() {
+  # Local gradle layout first, then the download-artifact layout (v4 keeps
+  # the debug/ and release/ prefixes once an artifact has more than one APK).
   ls app/build/outputs/apk/debug/*.apk 2>/dev/null | head -1 \
-    || ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1 \
+    || ls debug/*.apk 2>/dev/null | head -1 \
+    || ls release/*.apk 2>/dev/null | head -1 \
     || ls *.apk 2>/dev/null | head -1
 }
 
