@@ -170,7 +170,7 @@ def check_image_views(matrix: dict, android_key_by_symbol: dict[str, str], ios_k
             "both home screens must include the official photo collage")
 
     android_refs = re.findall(r"imageRes\s*=\s*OfficialSiteImages\.([A-Z_]+)", android)
-    ios_refs = re.findall(r"imageName\s*=\s*OfficialSiteImages\.([A-Za-z][A-Za-z0-9]*)", ios)
+    ios_refs = re.findall(r"imageName\s*[=:]\s*OfficialSiteImages\.([A-Za-z][A-Za-z0-9]*)", ios)
     expected = onboarding["slide_images"]
     require([android_key_by_symbol.get(ref) for ref in android_refs] == expected,
             "Android onboarding image sequence differs from the documented cross-platform sequence")
