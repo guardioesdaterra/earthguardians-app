@@ -174,7 +174,7 @@ declare -a SCREENS=(
   "01-home|earthguardians://home|Upcoming"
   "02-events|earthguardians://events|Every crew gathering"
   "03-stories|earthguardians://stories|Shared on the blog"
-  "04-maps|earthguardians://maps|EG-Maps"
+  "04-maps|earthguardians://maps|Maps"
   "05-more|earthguardians://more|More"
   "06-section-nested-query|earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate%3Fsource%3Dci%26campaign%3Ddeeplink%23ci-anchor|Donate"
   "07-bare-root-host|https://earthguardians.org|"

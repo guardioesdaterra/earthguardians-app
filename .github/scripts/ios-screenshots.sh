@@ -93,6 +93,7 @@ declare -a SCREENS=(
   "04-maps|maps"
   "05-more|more"
   "06-section-nested-query|section?u=https://www.earthguardians.org/donate?source=ci&campaign=deeplink#ci-anchor"
+  "07-bare-root-host|section?u=https://earthguardians.org"
 )
 
 for entry in "${SCREENS[@]}"; do

@@ -61,6 +61,16 @@
       "dark_filename": "eg-brand-mark-on-dark.png"
     }
   },
+  "native_maps": {
+    "picker_options": ["Crews", "Project Grants"],
+    "public_grants_path": "project-grants",
+    "private_manager_path": "eg-grants",
+    "datasets": {
+      "crew-regions": ["id", "region", "latitude", "longitude", "activeCrews", "inactiveCrews", "totalMembers", "countries"],
+      "crew-locations": ["name", "country", "city", "region", "status", "lat", "lng"],
+      "project-grants": ["project_title", "country_province", "latitude", "longitude", "direct_beneficiaries", "indirect_beneficiaries"]
+    }
+  },
   "official_images": [
     {
       "key": "community",
@@ -140,7 +150,7 @@
       "name": "04-maps",
       "android_route": "earthguardians://maps",
       "ios_route": "maps",
-      "android_expected_text": "EG-Maps"
+      "android_expected_text": "Maps"
     },
     {
       "name": "05-more",
@@ -153,6 +163,12 @@
       "android_route": "earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate%3Fsource%3Dci%26campaign%3Ddeeplink%23ci-anchor",
       "ios_route": "section?u=https://www.earthguardians.org/donate?source=ci&campaign=deeplink#ci-anchor",
       "android_expected_text": "Donate"
+    },
+    {
+      "name": "07-bare-root-host",
+      "android_route": "https://earthguardians.org",
+      "ios_route": "section?u=https://earthguardians.org",
+      "android_expected_text": ""
     }
   ]
 }

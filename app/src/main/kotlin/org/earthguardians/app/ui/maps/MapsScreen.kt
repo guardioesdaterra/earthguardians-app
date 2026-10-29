@@ -55,6 +55,7 @@ import org.earthguardians.app.ui.theme.egPalette
 import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
@@ -267,10 +268,13 @@ private class NativeMapController {
             map = readyMap
             readyMap.setStyle(LIBERTY_STYLE) {
                 styleReady = true
-                readyMap.cameraPosition = readyMap.cameraPosition.toBuilder().target(LatLng(15.0, 0.0)).zoom(1.6).build()
+                readyMap.cameraPosition = CameraPosition.Builder(readyMap.cameraPosition)
+                    .target(LatLng(15.0, 0.0))
+                    .zoom(1.6)
+                    .build()
                 render()
             }
-            readyMap.setOnCameraIdleListener { render() }
+            readyMap.addOnCameraIdleListener { render() }
             readyMap.setOnMarkerClickListener { marker ->
                 selectionCallback?.invoke(selectionFor(marker.title))
                 true
