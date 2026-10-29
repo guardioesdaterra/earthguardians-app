@@ -1,5 +1,7 @@
 import SwiftUI
 import MapKit
+import WebKit
+import UIKit
 
 /// Native, offline-first maps for the public Earth Guardians map datasets.
 /// The manager-only grants portal is not bundled or queried by these screens.
@@ -7,41 +9,61 @@ struct MapsScreen: View {
     @Environment(\.egPalette) private var palette
     let openURL: (String) -> Void
     @State private var selection = 0
+    @State private var experience = 0
+    @State private var focusedCrew: CrewLocation?
+    @State private var focusedProject: ProjectGrant?
 
     var body: some View {
         VStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 14) {
                 LargeTitle("Maps", subtitle: "Crews and projects caring for our shared home.")
-                EgSegmented(options: ["Crews", "Project Grants"], selection: $selection)
+                EgSegmented(options: ["Native", "EG-Maps"], selection: $experience)
+                if experience == 0 {
+                    EgSegmented(options: ["Crews", "Project Grants"], selection: $selection)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 6)
 
-            if selection == 0 {
-                CrewsMapScreen()
+            if experience == 1 {
+                MapsHomeWebView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+            } else if selection == 0 {
+                CrewsMapScreen(focusCrew: focusedCrew) { project in
+                    focusedProject = project
+                    selection = 1
+                }
             } else {
-                ProjectGrantsMapScreen()
+                ProjectGrantsMapScreen(focusProject: focusedProject) { crew in
+                    focusedCrew = crew
+                    selection = 0
+                }
             }
         }
         .background(palette.background.ignoresSafeArea())
     }
 }
 
-// MARK: - Public map models and local loader
+private let egMapsHomeURL = URL(string: "https://guardioesdaterra.github.io/EG-Maps/")!
 
-private struct CrewRegion: Codable, Identifiable, MapPoint {
-    let id: String
-    let region: String
-    let latitude: Double
-    let longitude: Double
-    let activeCrews: Int
-    let inactiveCrews: Int
-    let totalMembers: Int
-    let countries: Int
+private struct MapsHomeWebView: UIViewRepresentable {
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        webView.backgroundColor = .clear
+        webView.isOpaque = false
+        webView.scrollView.backgroundColor = .clear
+        webView.allowsBackForwardNavigationGestures = true
+        webView.load(URLRequest(url: egMapsHomeURL))
+        return webView
+    }
 
-    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
-    var searchText: String { "\(region) \(activeCrews) \(inactiveCrews)" }
+    func updateUIView(_ webView: WKWebView, context: Context) {}
 }
+
+// MARK: - Public map models and local loader
 
 private struct CrewLocation: Codable, Identifiable, MapPoint {
     var id: String { "\(name)-\(city)-\(lat)-\(lng)" }
@@ -69,6 +91,12 @@ private struct ProjectGrant: Codable, Identifiable, MapPoint {
 
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
     var searchText: String { "\(project_title) \(country_province)" }
+}
+
+private struct CrewGrantMatch: Decodable {
+    let key: String
+    let reason: String
+    let distanceKm: Double?
 }
 
 private protocol MapPoint {
@@ -111,20 +139,20 @@ private enum MapsLoadState: Equatable {
 // MARK: - Crews
 
 private struct CrewsMapScreen: View {
-    @Environment(\.egPalette) private var palette
-    @State private var regions: [CrewRegion] = []
+    let focusCrew: CrewLocation?
+    let onFlyToProject: (ProjectGrant) -> Void
     @State private var locations: [CrewLocation] = []
+    @State private var grants: [ProjectGrant] = []
+    @State private var crewGrantMap: [String: [CrewGrantMatch]] = [:]
     @State private var state: MapsLoadState = .loading
     @State private var query = ""
+    @State private var is3DEnabled = false
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 15, longitude: 10),
         span: MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 220)
     )
-    @State private var selectedRegion: CrewRegion?
     @State private var selectedLocation: CrewLocation?
 
-    private var isCloseZoom: Bool { region.span.longitudeDelta < 45 }
-    private var filteredRegions: [CrewRegion] { regions.filter { matches($0.searchText) } }
     private var filteredLocations: [CrewLocation] { locations.filter { matches($0.searchText) } }
 
     var body: some View {
@@ -141,15 +169,9 @@ private struct CrewsMapScreen: View {
                 mapPlaceholder(message: "No crew locations are available.")
             case .loaded:
                 ZStack(alignment: .bottom) {
-                    Group {
-                        if isCloseZoom {
-                            crewLocationsMap
-                        } else {
-                            crewRegionsMap
-                        }
-                    }
+                    crewLocationsMap
                     .overlay(alignment: .topLeading) {
-                        mapLegend(text: isCloseZoom ? "Individual crews" : "Regional overview")
+                        mapLegend(text: "\(filteredLocations.count) individual crews")
                             .padding(12)
                     }
                     .overlay(alignment: .bottomTrailing) {
@@ -160,9 +182,6 @@ private struct CrewsMapScreen: View {
                     if let selectedLocation {
                         crewLocationCard(selectedLocation)
                             .padding(14)
-                    } else if let selectedRegion {
-                        crewRegionCard(selectedRegion)
-                            .padding(14)
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
@@ -170,66 +189,110 @@ private struct CrewsMapScreen: View {
             }
         }
         .padding(.bottom, 8)
-        .task { load() }
+        .task {
+            load()
+            if let focusCrew { focus(on: focusCrew) }
+        }
+        .onChange(of: focusCrew?.id) { _ in
+            if let focusCrew { focus(on: focusCrew) }
+        }
     }
 
     private var crewLocationsMap: some View {
-        Map(coordinateRegion: $region, annotationItems: filteredLocations) { item in
-            MapAnnotation(coordinate: item.coordinate) {
-                Button {
-                    selectedLocation = item
-                    selectedRegion = nil
-                    UIC.feedback()
-                } label: {
-                    mapPin(color: palette.eco, icon: "person.3.fill")
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .frame(minHeight: 430)
-    }
-
-    private var crewRegionsMap: some View {
-        Map(coordinateRegion: $region, annotationItems: filteredRegions) { item in
-            MapAnnotation(coordinate: item.coordinate) {
-                Button {
-                    selectedRegion = item
-                    selectedLocation = nil
-                    UIC.feedback()
-                } label: {
-                    mapPin(color: palette.accent, icon: "globe.americas.fill")
-                }
-                .buttonStyle(.plain)
-            }
-        }
+        SatelliteMapView(
+            region: $region,
+            is3DEnabled: $is3DEnabled,
+            items: filteredLocations,
+            coordinate: { $0.coordinate },
+            title: { $0.name },
+            subtitle: { [$0.city, $0.state, $0.country].filter { !$0.isEmpty }.joined(separator: ", ") },
+            glyph: { _ in "C" },
+            tint: { $0.status.lowercased() == "active" ? .systemGreen : .systemOrange },
+            onSelect: { item in
+                selectedLocation = item
+                UIC.feedback()
+            },
+        )
+        .overlay(alignment: .topTrailing) { mapPitchToggle($is3DEnabled).padding(.top, 54).padding(.trailing, 12) }
         .frame(minHeight: 430)
     }
 
     private func load() {
         guard state == .loading else { return }
         do {
-            regions = try MapsDataLoader.load("crew-regions", as: [CrewRegion].self)
             locations = try MapsDataLoader.load("crew-locations", as: [CrewLocation].self)
-            state = regions.isEmpty && locations.isEmpty ? .empty : .loaded
+            grants = try MapsDataLoader.load("project-grants", as: [ProjectGrant].self)
+            crewGrantMap = try MapsDataLoader.load("crew-grants-map", as: [String: [CrewGrantMatch]].self)
+            state = locations.isEmpty ? .empty : .loaded
         } catch {
             state = .failed(error.localizedDescription)
         }
     }
 
-    private func crewRegionCard(_ item: CrewRegion) -> some View {
-        detailCard(title: item.region, subtitle: "Regional crew overview", icon: "globe.americas.fill") {
-            detailRow("Active crews", value: "\(item.activeCrews)")
-            detailRow("Members", value: "\(item.totalMembers)")
-            detailRow("Countries", value: "\(item.countries)")
+    private func focus(on crew: CrewLocation) {
+        withAnimation(.easeInOut(duration: 0.55)) {
+            region = focusedRegion(crew.coordinate)
+            selectedLocation = crew
         }
     }
 
     private func crewLocationCard(_ item: CrewLocation) -> some View {
-        detailCard(title: item.name, subtitle: [item.city, item.state, item.country].filter { !$0.isEmpty }.joined(separator: ", "), icon: "person.3.fill") {
-            detailRow("Region", value: item.region)
+        let nearby = nearestCrews(to: item.coordinate, in: locations, excluding: item)
+        let linkedProjects = relatedProjects(for: item, from: grants, matches: crewGrantMap)
+        return detailCard(title: item.name, subtitle: [item.city, item.state, item.country].filter { !$0.isEmpty }.joined(separator: ", "), icon: "person.3.fill") {
             detailRow("Status", value: item.status.capitalized)
+            detailRow("Region", value: item.region)
+            detailRow("Coordinates", value: String(format: "%.4f, %.4f", item.lat, item.lng))
+
+            mapSectionTitle("Nearby Crews · \(nearby.count)")
+            if nearby.isEmpty {
+                Text("No other Crew locations are available.").font(.system(size: 12)).foregroundColor(.secondary)
+            } else {
+                ForEach(nearby) { entry in
+                    Button { focus(on: entry.crew) } label: {
+                        nearbyCrewRow(entry)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            mapSectionTitle("Project grants linked to this Crew · \(linkedProjects.count)")
+            if linkedProjects.isEmpty {
+                Text("No linked project grants were found in the public map data.").font(.system(size: 12)).foregroundColor(.secondary)
+            } else {
+                ForEach(linkedProjects) { entry in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                if entry.distanceKm < 10 {
+                                    Text("CREW PROJECT").font(.system(size: 9, weight: .bold)).foregroundColor(.green)
+                                }
+                                Text(entry.project.project_title).font(.system(size: 12, weight: .semibold)).lineLimit(3)
+                                Text("\(entry.project.country_province) · \(entry.reason.replacingOccurrences(of: "-", with: " ").capitalized)")
+                                    .font(.system(size: 11)).foregroundColor(.secondary)
+                            }
+                            Spacer(minLength: 6)
+                            Text(formatDistance(entry.distanceKm)).font(.system(size: 10, weight: .medium)).foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Text("Beneficiaries: \(compactNumber(entry.project.direct_beneficiaries)) direct · \(compactNumber(entry.project.indirect_beneficiaries)) indirect")
+                                .font(.system(size: 10)).foregroundColor(.secondary)
+                            Spacer()
+                            Button("Fly to") { onFlyToProject(entry.project) }
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                    }
+                    .padding(.vertical, 5)
+                }
+            }
+
+            Link(destination: googleMapsURL(latitude: item.lat, longitude: item.lng)) {
+                Label("Open in Google Maps", systemImage: "location.north.line")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(maxWidth: .infinity, minHeight: 42)
+            }
         }
-    }
+        }
 
     private func matches(_ text: String) -> Bool {
         query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || text.localizedCaseInsensitiveContains(query)
@@ -239,10 +302,14 @@ private struct CrewsMapScreen: View {
 // MARK: - Project grants
 
 private struct ProjectGrantsMapScreen: View {
+    let focusProject: ProjectGrant?
+    let onSelectNearbyCrew: (CrewLocation) -> Void
     @Environment(\.egPalette) private var palette
     @State private var grants: [ProjectGrant] = []
+    @State private var crews: [CrewLocation] = []
     @State private var state: MapsLoadState = .loading
     @State private var query = ""
+    @State private var is3DEnabled = false
     @State private var selectedGrant: ProjectGrant?
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 10, longitude: 10),
@@ -265,17 +332,26 @@ private struct ProjectGrantsMapScreen: View {
                 mapPlaceholder(message: "No public grant projects are available.")
             case .loaded:
                 ZStack(alignment: .bottom) {
-                    Map(coordinateRegion: $region, annotationItems: filteredGrants) { grant in
-                        MapAnnotation(coordinate: grant.coordinate) {
-                            Button {
-                                selectedGrant = grant
-                                UIC.feedback()
-                            } label: {
-                                mapPin(color: palette.eco, icon: "leaf.fill")
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                    SatelliteMapView(
+                        region: $region,
+                        is3DEnabled: $is3DEnabled,
+                        items: filteredGrants,
+                        coordinate: { $0.coordinate },
+                        title: { $0.project_title },
+                        subtitle: { $0.country_province },
+                        glyph: { _ in "G" },
+                        tint: { grant in
+                            let total = max(0, grant.direct_beneficiaries) + max(0, grant.indirect_beneficiaries)
+                            if total >= 10_000 { return .systemPurple }
+                            if total >= 1_000 { return .systemTeal }
+                            return .systemBlue
+                        },
+                        onSelect: { grant in
+                            selectedGrant = grant
+                            UIC.feedback()
+                        },
+                    )
+                    .overlay(alignment: .topTrailing) { mapPitchToggle($is3DEnabled).padding(.top, 54).padding(.trailing, 12) }
                     .frame(minHeight: 430)
                     .overlay(alignment: .topLeading) {
                         mapLegend(text: "\(filteredGrants.count) public projects")
@@ -287,12 +363,7 @@ private struct ProjectGrantsMapScreen: View {
                     }
 
                     if let selectedGrant {
-                        detailCard(title: selectedGrant.project_title,
-                                   subtitle: selectedGrant.country_province,
-                                   icon: "leaf.fill") {
-                            detailRow("Direct beneficiaries", value: "\(selectedGrant.direct_beneficiaries)")
-                            detailRow("Indirect beneficiaries", value: "\(selectedGrant.indirect_beneficiaries)")
-                        }
+                        projectDetailCard(selectedGrant)
                         .padding(14)
                     }
                 }
@@ -301,18 +372,294 @@ private struct ProjectGrantsMapScreen: View {
             }
         }
         .padding(.bottom, 8)
-        .task { load() }
+        .task {
+            load()
+            if let focusProject { focus(on: focusProject) }
+        }
+        .onChange(of: focusProject?.id) { _ in
+            if let focusProject { focus(on: focusProject) }
+        }
+    }
+
+    private func focus(on project: ProjectGrant) {
+        withAnimation(.easeInOut(duration: 0.55)) {
+            region = focusedRegion(project.coordinate)
+            selectedGrant = project
+        }
+    }
+
+    private func projectDetailCard(_ project: ProjectGrant) -> some View {
+        let total = max(0, project.direct_beneficiaries) + max(0, project.indirect_beneficiaries)
+        let nearby = nearestCrews(to: project.coordinate, in: crews)
+        return detailCard(title: project.project_title, subtitle: project.country_province, icon: "leaf.fill") {
+            detailRow("Direct beneficiaries", value: project.direct_beneficiaries > 0 ? compactNumber(project.direct_beneficiaries) : "Unknown")
+            detailRow("Indirect beneficiaries", value: project.indirect_beneficiaries > 0 ? compactNumber(project.indirect_beneficiaries) : "Unknown")
+            detailRow("Total beneficiaries", value: total > 0 ? compactNumber(total) : "Unknown")
+            if total > 0 {
+                detailRow("Direct share", value: "\(Int((Double(max(0, project.direct_beneficiaries)) / Double(total) * 100).rounded()))%")
+                ProgressView(value: Double(max(0, project.direct_beneficiaries)) / Double(total))
+                    .tint(palette.eco)
+            }
+
+            mapSectionTitle("Nearby Crews · \(nearby.count)")
+            if nearby.isEmpty {
+                Text("No Crew locations are available near this project.").font(.system(size: 12)).foregroundColor(.secondary)
+            } else {
+                ForEach(nearby) { entry in
+                    Button { onSelectNearbyCrew(entry.crew) } label: {
+                        nearbyCrewRow(entry)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            Link(destination: googleMapsURL(latitude: project.latitude, longitude: project.longitude)) {
+                Label("Open in Google Maps", systemImage: "location.north.line")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(maxWidth: .infinity, minHeight: 42)
+            }
+        }
     }
 
     private func load() {
         guard state == .loading else { return }
         do {
             grants = try MapsDataLoader.load("project-grants", as: [ProjectGrant].self)
+            crews = try MapsDataLoader.load("crew-locations", as: [CrewLocation].self)
             state = grants.isEmpty ? .empty : .loaded
         } catch {
             state = .failed(error.localizedDescription)
         }
     }
+}
+
+// MARK: - Satellite map and popup data
+
+private final class MapsPointAnnotation: NSObject, MKAnnotation {
+    let pointID: String
+    @objc dynamic var coordinate: CLLocationCoordinate2D
+    var title: String?
+    var subtitle: String?
+
+    init(pointID: String, coordinate: CLLocationCoordinate2D, title: String, subtitle: String) {
+        self.pointID = pointID
+        self.coordinate = coordinate
+        self.title = title
+        self.subtitle = subtitle
+    }
+}
+
+private struct SatelliteMapView<Item: Identifiable>: UIViewRepresentable where Item.ID == String {
+    @Binding var region: MKCoordinateRegion
+    @Binding var is3DEnabled: Bool
+    let items: [Item]
+    let coordinate: (Item) -> CLLocationCoordinate2D
+    let title: (Item) -> String
+    let subtitle: (Item) -> String
+    let glyph: (Item) -> String
+    let tint: (Item) -> UIColor
+    let onSelect: (Item) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIView(context: Context) -> MKMapView {
+        let mapView = MKMapView(frame: .zero)
+        mapView.mapType = .satellite
+        mapView.showsCompass = true
+        mapView.showsScale = true
+        mapView.isRotateEnabled = true
+        mapView.isPitchEnabled = true
+        mapView.delegate = context.coordinator
+        mapView.setRegion(region, animated: false)
+        context.coordinator.updateItems(on: mapView, with: items)
+        return mapView
+    }
+
+    func updateUIView(_ mapView: MKMapView, context: Context) {
+        context.coordinator.parent = self
+        mapView.mapType = .satellite
+        mapView.delegate = context.coordinator
+        if !sameRegion(mapView.region, region) {
+            mapView.setRegion(region, animated: true)
+        }
+        if (mapView.camera.pitch > 0.5) != is3DEnabled {
+            let camera = mapView.camera.copy() as! MKMapCamera
+            camera.pitch = is3DEnabled ? 55 : 0
+            mapView.setCamera(camera, animated: true)
+        }
+        context.coordinator.updateItems(on: mapView, with: items)
+    }
+
+    private func sameRegion(_ lhs: MKCoordinateRegion, _ rhs: MKCoordinateRegion) -> Bool {
+        abs(lhs.center.latitude - rhs.center.latitude) < 0.0001
+            && abs(lhs.center.longitude - rhs.center.longitude) < 0.0001
+            && abs(lhs.span.latitudeDelta - rhs.span.latitudeDelta) < 0.001
+            && abs(lhs.span.longitudeDelta - rhs.span.longitudeDelta) < 0.001
+    }
+
+    final class Coordinator: NSObject, MKMapViewDelegate {
+        var parent: SatelliteMapView<Item>
+        private var itemsByID: [String: Item] = [:]
+
+        init(_ parent: SatelliteMapView<Item>) {
+            self.parent = parent
+        }
+
+        func updateItems(on mapView: MKMapView, with items: [Item]) {
+            itemsByID = items.reduce(into: [:]) { result, item in result[String(describing: item.id)] = item }
+            let wantedIDs = Set(items.map { String(describing: $0.id) })
+            let annotations = mapView.annotations.compactMap { $0 as? MapsPointAnnotation }
+            let currentIDs = Set(annotations.map(\.pointID))
+            guard wantedIDs != currentIDs else { return }
+            mapView.removeAnnotations(annotations)
+            mapView.addAnnotations(items.map {
+                MapsPointAnnotation(
+                    pointID: String(describing: $0.id),
+                    coordinate: parent.coordinate($0),
+                    title: parent.title($0),
+                    subtitle: parent.subtitle($0),
+                )
+            })
+        }
+
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            guard let point = annotation as? MapsPointAnnotation,
+                  let item = itemsByID[point.pointID] else { return nil }
+            let reuseID = "earth-guardians-map-point"
+            let view = mapView.dequeueReusableAnnotationView(withIdentifier: reuseID) as? MKMarkerAnnotationView
+                ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: reuseID)
+            view.annotation = annotation
+            view.markerTintColor = parent.tint(item)
+            view.glyphText = parent.glyph(item)
+            view.displayPriority = .required
+            view.canShowCallout = false
+            return view
+        }
+
+        func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+            guard let point = view.annotation as? MapsPointAnnotation,
+                  let item = itemsByID[point.pointID] else { return }
+            parent.onSelect(item)
+        }
+
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            parent.region = mapView.region
+        }
+    }
+}
+
+private struct NearbyCrew: Identifiable {
+    let crew: CrewLocation
+    let distanceKm: Double
+    var id: String { crew.id }
+}
+
+private struct NearbyProject: Identifiable {
+    let project: ProjectGrant
+    let distanceKm: Double
+    let reason: String
+    var id: String { project.id }
+}
+
+private func nearestCrews(to coordinate: CLLocationCoordinate2D, in crews: [CrewLocation], excluding excluded: CrewLocation? = nil) -> [NearbyCrew] {
+    crews.filter { $0.id != excluded?.id }
+        .map { NearbyCrew(crew: $0, distanceKm: distanceKm(coordinate, $0.coordinate)) }
+        .sorted { $0.distanceKm < $1.distanceKm }
+        .prefix(8)
+        .map { $0 }
+}
+
+private func relatedProjects(for crew: CrewLocation, from projects: [ProjectGrant], matches: [String: [CrewGrantMatch]]) -> [NearbyProject] {
+    let projectsByKey = projects.reduce(into: [String: ProjectGrant]()) { result, project in
+        result[projectGrantKey(project)] = project
+    }
+    return (matches[crewLocationKey(crew)] ?? []).compactMap { match in
+        guard let project = projectsByKey[match.key] else { return nil }
+        let km = match.distanceKm ?? distanceKm(crew.coordinate, project.coordinate)
+        return NearbyProject(project: project, distanceKm: km, reason: match.reason)
+    }
+}
+
+private func crewLocationKey(_ crew: CrewLocation) -> String {
+    "loc|\(normalizeCrewText(crew.name))|\(round4Key(crew.lat))|\(round4Key(crew.lng))"
+}
+
+private func projectGrantKey(_ project: ProjectGrant) -> String {
+    "\(project.project_title)__\(mapNumberKey(project.latitude))__\(mapNumberKey(project.longitude))"
+}
+
+private func normalizeCrewText(_ value: String) -> String {
+    let folded = value.folding(options: .diacriticInsensitive, locale: Locale(identifier: "en_US_POSIX")).lowercased()
+    let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789")
+    return folded.unicodeScalars.map { allowed.contains($0) ? String($0) : " " }
+        .joined()
+        .split(whereSeparator: \.isWhitespace)
+        .joined(separator: " ")
+}
+
+private func round4Key(_ value: Double) -> String {
+    mapNumberKey(floor(value * 10_000 + 0.5) / 10_000)
+}
+
+private func mapNumberKey(_ value: Double) -> String {
+    if value == 0 { return "0" }
+    if value.isFinite, value == value.rounded(.towardZero) { return String(format: "%.0f", value) }
+    return String(value)
+}
+
+private func distanceKm(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
+    let radians = Double.pi / 180
+    let dLat = (b.latitude - a.latitude) * radians
+    let dLon = (b.longitude - a.longitude) * radians
+    let lat1 = a.latitude * radians
+    let lat2 = b.latitude * radians
+    let haversine = sin(dLat / 2) * sin(dLat / 2)
+        + cos(lat1) * cos(lat2) * sin(dLon / 2) * sin(dLon / 2)
+    return 6371 * 2 * atan2(sqrt(haversine), sqrt(1 - haversine))
+}
+
+private func focusedRegion(_ coordinate: CLLocationCoordinate2D) -> MKCoordinateRegion {
+    MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: 24, longitudeDelta: 24))
+}
+
+private func formatDistance(_ km: Double) -> String {
+    if km < 1 { return "<1 km" }
+    if km < 100 { return "\(Int(km.rounded())) km" }
+    return "\(Int((km / 10).rounded() * 10)) km"
+}
+
+private func compactNumber(_ value: Int) -> String {
+    value.formatted(.number.notation(.compactName))
+}
+
+private func googleMapsURL(latitude: Double, longitude: Double) -> URL {
+    URL(string: "https://www.google.com/maps?q=\(latitude),\(longitude)")!
+}
+
+private func nearbyCrewRow(_ entry: NearbyCrew) -> some View {
+    HStack(spacing: 9) {
+        Circle()
+            .fill(entry.crew.status.lowercased() == "active" ? Color.green : Color.orange)
+            .frame(width: 8, height: 8)
+        VStack(alignment: .leading, spacing: 2) {
+            Text(entry.crew.name).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+            Text([entry.crew.city, entry.crew.country].filter { !$0.isEmpty }.joined(separator: ", "))
+                .font(.system(size: 10)).foregroundColor(.secondary).lineLimit(1)
+        }
+        Spacer(minLength: 5)
+        Text(formatDistance(entry.distanceKm)).font(.system(size: 10, weight: .medium)).foregroundColor(.secondary)
+        Image(systemName: "arrow.up.right").font(.system(size: 9, weight: .bold)).foregroundColor(.accentColor)
+    }
+    .frame(minHeight: 40)
+    .contentShape(Rectangle())
+}
+
+private func mapSectionTitle(_ title: String) -> some View {
+    Text(title.uppercased())
+        .font(.system(size: 10, weight: .bold))
+        .tracking(0.7)
+        .foregroundColor(.secondary)
+        .padding(.top, 5)
 }
 
 // MARK: - Shared map UI
@@ -335,14 +682,19 @@ private func mapSearchField(text: Binding<String>, placeholder: String) -> some 
     .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: EGRadius.tile, style: .continuous))
 }
 
-private func mapPin(color: Color, icon: String) -> some View {
-    Image(systemName: icon)
-        .font(.system(size: 13, weight: .bold))
-        .foregroundColor(.white)
-        .padding(8)
-        .background(Circle().fill(color))
-        .overlay(Circle().stroke(Color.white, lineWidth: 2))
-        .shadow(color: .black.opacity(0.22), radius: 4, y: 2)
+private func mapPitchToggle(_ is3DEnabled: Binding<Bool>) -> some View {
+    Button {
+        UIC.feedback()
+        withAnimation(.easeInOut(duration: 0.25)) { is3DEnabled.wrappedValue.toggle() }
+    } label: {
+        Label(is3DEnabled.wrappedValue ? "3D" : "2D", systemImage: "cube")
+            .font(.system(size: 11, weight: .semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(.ultraThinMaterial, in: Capsule())
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(is3DEnabled.wrappedValue ? "Return to flat map" : "Tilt map into 3D")
 }
 
 private func mapLegend(text: String) -> some View {
@@ -354,7 +706,7 @@ private func mapLegend(text: String) -> some View {
 }
 
 private func attributionLabel() -> some View {
-    Text("Map data © Apple")
+    Text("Satellite imagery © Apple")
         .font(.system(size: 10, weight: .medium))
         .foregroundColor(.secondary)
         .padding(.horizontal, 7)
@@ -374,16 +726,19 @@ private func mapPlaceholder(message: String, icon: String = "map") -> some View 
 
 private func detailCard<Content: View>(title: String, subtitle: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
     GlassCard(cornerRadius: EGRadius.tile) {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: icon).foregroundColor(.accentColor)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.system(size: 15, weight: .bold)).lineLimit(2)
-                    if !subtitle.isEmpty { Text(subtitle).font(.system(size: 12)).foregroundColor(.secondary).lineLimit(2) }
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: icon).foregroundColor(.accentColor)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(title).font(.system(size: 15, weight: .bold)).lineLimit(2)
+                        if !subtitle.isEmpty { Text(subtitle).font(.system(size: 12)).foregroundColor(.secondary).lineLimit(2) }
+                    }
                 }
+                content()
             }
-            content()
         }
+        .frame(maxHeight: 310)
     }
 }
 
