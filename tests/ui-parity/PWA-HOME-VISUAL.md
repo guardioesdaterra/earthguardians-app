@@ -10,9 +10,9 @@ The PWA capture uses Chromium in light mode, `en-US`, UTC, a 412×834 CSS viewpo
 
 ## Deterministic feed and masks
 
-Before static generation, CI temporarily substitutes `tests/fixtures/pwa-home/feed.json` for the imported feed cache. The browser also intercepts the feed refresh request with that same fixture. Event/story titles and dates are therefore fixed, images are omitted, and the browser uses a fixed locale and timezone.
+Before static generation, CI temporarily substitutes `tests/fixtures/pwa-home/feed.json` for the imported feed cache. The browser also intercepts the feed refresh request with that same fixture. Event/story titles and dates are fixed and fixture `imageUrl` values are null; the Home now resolves the three known routes to bundled official-site thumbnails, while unmapped items retain the normal feed-image fallback. The browser uses a fixed locale and timezone.
 
-The capture script discovers only the visible `.home-event-art` rectangles and `.home-story-row` thumbnails. Those physical-pixel rectangles are masked in **both** screenshots to tolerate live/remote event artwork, story thumbnails and the overlaid event date. The mask may cover at most 30% of the crop. Section headings, event/story text, app shell, navigation, and the Home hero are not masked.
+The capture script masks only visible media explicitly tagged `remote`, including the event date overlay within that remote artwork rectangle. Bundled official thumbnails and intentional CSS placeholders remain unmasked and are compared pixel-for-pixel. The current fixture maps the two visible event artworks and first story thumbnail to bundled assets; other fixture entries have no image URL and render deterministic placeholders, so the expected mask file is empty. If a future fixture contains visible remote thumbnails, only those regions are masked, subject to the unchanged 30% cap. Section headings, event/story text, app shell, navigation, and the Home hero are not masked.
 
 The current parity source uses a photographic Home hero and different hero copy from the Android quote card. That known visual difference remains unmasked so the comparison can expose it; this check does not silently label that surface as matched.
 

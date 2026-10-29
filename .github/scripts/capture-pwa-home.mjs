@@ -67,8 +67,8 @@ try {
   })
 
   const maskSelectors = [
-    { selector: '.home-event-art', reason: 'Event artwork and its overlaid live date' },
-    { selector: '.home-story-row > img, .home-story-placeholder', reason: 'Story thumbnail' },
+    { selector: '.home-event-art[data-comparison-media="remote"]', reason: 'Remote event artwork and its overlaid date' },
+    { selector: '.home-story-row[data-comparison-media="remote"] > img, .home-story-row[data-comparison-media="remote"] > .home-story-placeholder', reason: 'Remote story thumbnail' },
   ]
   const masks = []
   for (const { selector, reason } of maskSelectors) {
@@ -96,10 +96,6 @@ try {
       })
     }
   }
-  if (masks.length === 0) {
-    throw new Error('No visible event/story media masks were found; update the test selectors rather than silently comparing live media.')
-  }
-
   try {
     await page.screenshot({
       path: rawScreenshotPath,
@@ -125,7 +121,7 @@ try {
     masks,
   }, null, 2)}\n`)
   console.log(`Captured ${screenshotPath} (${WIDTH_PX}x${HEIGHT_PX}px at DPR ${DEVICE_SCALE_FACTOR})`)
-  console.log(`Recorded ${masks.length} live event/story media mask(s) in ${masksPath}`)
+  console.log(`Recorded ${masks.length} nondeterministic remote media mask(s) in ${masksPath}`)
   await context.close()
 } finally {
   await browser.close()

@@ -8,13 +8,19 @@ import EGCore
 struct EgImage: View {
     @Environment(\.egPalette) private var palette
     let url: String?
+    var localImageName: String? = nil
     var cornerRadius: CGFloat = 18
     var contentMode: ContentMode = .fill
 
     var body: some View {
         ZStack {
             placeholder
-            if let url, let remote = URL(string: url) {
+            if let localImageName {
+                Image(localImageName)
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+                    .transition(.opacity)
+            } else if let url, let remote = URL(string: url) {
                 AsyncImage(url: remote) { phase in
                     switch phase {
                     case .success(let image):
@@ -56,7 +62,11 @@ struct PostRowCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                EgImage(url: post.imageUrl, cornerRadius: 14)
+                EgImage(
+                    url: post.imageUrl,
+                    localImageName: OfficialSiteImages.featuredStory(for: post.url),
+                    cornerRadius: 14
+                )
                     .frame(width: 86, height: 86)
 
                 VStack(alignment: .leading, spacing: 5) {

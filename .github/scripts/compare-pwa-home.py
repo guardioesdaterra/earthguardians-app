@@ -50,8 +50,8 @@ def main() -> int:
     if (mask_data.get("width"), mask_data.get("height")) != EXPECTED_SIZE:
         fail("Mask file dimensions do not match the content crop")
     masks = mask_data.get("masks")
-    if not isinstance(masks, list) or not masks:
-        fail("No event/story media masks were recorded")
+    if not isinstance(masks, list):
+        fail("Media masks must be a list")
 
     masked = np.zeros((EXPECTED_SIZE[1], EXPECTED_SIZE[0]), dtype=bool)
     for index, item in enumerate(masks):
@@ -87,12 +87,12 @@ def main() -> int:
     passed = mae <= MAX_MEAN_ABSOLUTE_ERROR and changed_ratio <= MAX_CHANGED_PIXEL_RATIO
     status = "PASS" if passed else "FAIL"
     lines = [
-        f"### PWA Home masked visual comparison: {status}",
+        f"### PWA Home visual comparison: {status}",
         "",
         f"- Android content crop: `{NATIVE_CONTENT_CROP}` → `{EXPECTED_SIZE[0]}×{EXPECTED_SIZE[1]}` px.",
         f"- Thresholds: MAE ≤ `{MAX_MEAN_ABSOLUTE_ERROR:.1f}`; changed pixels (max RGB delta > `{CHANNEL_THRESHOLD}`) ≤ `{MAX_CHANGED_PIXEL_RATIO:.0%}`.",
         f"- Result: MAE `{mae:.2f}`; changed pixels `{changed_ratio:.2%}`; masked media `{masked_ratio:.2%}` ({len(masks)} rectangles).",
-        "- Masks cover only event artwork/date overlays and story thumbnails; headings, text, layout and the Home hero remain compared.",
+        "- Only nondeterministic remote media is masked; bundled assets and intentional placeholders remain compared.",
         "- This is a masked screenshot regression signal, not a claim of complete pixel parity.",
     ]
     summary = "\n".join(lines) + "\n"

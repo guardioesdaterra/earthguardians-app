@@ -452,6 +452,7 @@ private fun EventCarouselCard(
         Box {
             EgImage(
                 url = event.imageUrl,
+                localImageRes = OfficialSiteImages.featuredEvent(event.url),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp),

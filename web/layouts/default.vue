@@ -41,7 +41,7 @@ const navigation = [
       </div>
     </header>
 
-    <main id="main-content" class="app-main">
+    <main id="main-content" class="app-main" :class="{ 'app-main--home': showHomeHeader }">
       <slot />
     </main>
 

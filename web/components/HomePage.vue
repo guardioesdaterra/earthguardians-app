@@ -1,11 +1,26 @@
 <script setup lang="ts">
 import { displayDate, useEgFeed } from '../composables/useEgFeed'
+import { officialHomeFeedImage } from '../utils/officialHomeFeedImages'
 
 const { events, posts, status, stale, refreshing, error, refreshFeed } = useEgFeed()
 const config = useRuntimeConfig()
 const base = String(config.app.baseURL || '/').replace(/\/?$/, '/')
-const featuredEvents = computed(() => events.value.slice(0, 8))
-const featuredStories = computed(() => posts.value.slice(0, 5))
+const featuredEvents = computed(() => events.value.slice(0, 8).map(event => {
+  const localImage = officialHomeFeedImage('event', event.url, base)
+  return {
+    ...event,
+    homeImageUrl: localImage || event.imageUrl || null,
+    homeImageSource: localImage ? 'bundled' : event.imageUrl ? 'remote' : 'placeholder',
+  }
+}))
+const featuredStories = computed(() => posts.value.slice(0, 5).map(post => {
+  const localImage = officialHomeFeedImage('story', post.url, base)
+  return {
+    ...post,
+    homeImageUrl: localImage || post.imageUrl || null,
+    homeImageSource: localImage ? 'bundled' : post.imageUrl ? 'remote' : 'placeholder',
+  }
+}))
 const collageImages = [
   'eg_home_community.jpg', 'eg_home_benin_action.jpg', 'eg_home_leaves.jpg', 'eg_home_fieldwork.jpg',
   'eg_home_youth_gathering.jpg', 'eg_home_climate_action.jpg', 'eg_home_community.jpg', 'eg_home_fieldwork.jpg',
@@ -56,8 +71,8 @@ useHead({ title: 'Home · Earth Guardians' })
         <div class="home-section-heading"><h2 id="home-upcoming-title">Upcoming</h2><NuxtLink to="/events">See all</NuxtLink></div>
         <div v-if="featuredEvents.length" class="home-event-scroller" aria-label="Upcoming community events">
           <NuxtLink v-for="event in featuredEvents" :key="event.url" class="home-event-card" :to="eventLink(event.url)">
-            <div class="home-event-art">
-              <img v-if="event.imageUrl" :src="event.imageUrl" :alt="event.title" loading="lazy">
+            <div class="home-event-art" :data-comparison-media="event.homeImageSource">
+              <img v-if="event.homeImageUrl" :src="event.homeImageUrl" :alt="event.title" loading="lazy">
               <span class="home-event-date">{{ displayDate(event.startsAt) }}</span>
             </div>
             <h3>{{ event.title }}</h3>
@@ -69,8 +84,8 @@ useHead({ title: 'Home · Earth Guardians' })
       <section v-if="featuredStories.length" class="home-section" aria-labelledby="home-stories-title">
         <div class="home-section-heading"><h2 id="home-stories-title">Stories</h2><NuxtLink to="/stories">See all</NuxtLink></div>
         <div class="home-story-list">
-          <NuxtLink v-for="post in featuredStories" :key="post.url" class="home-story-row" :to="storyLink(post.url)">
-            <img v-if="post.imageUrl" :src="post.imageUrl" alt="" loading="lazy">
+          <NuxtLink v-for="post in featuredStories" :key="post.url" class="home-story-row" :data-comparison-media="post.homeImageSource" :to="storyLink(post.url)">
+            <img v-if="post.homeImageUrl" :src="post.homeImageUrl" alt="" loading="lazy">
             <span v-else class="home-story-placeholder" aria-hidden="true"></span>
             <span class="home-story-copy"><strong>{{ post.title }}</strong><small>{{ displayDate(post.publishedAt) }}</small></span>
             <span class="home-story-chevron" aria-hidden="true">›</span>
