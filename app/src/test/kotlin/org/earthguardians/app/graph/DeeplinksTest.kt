@@ -145,11 +145,12 @@ class DeeplinksTest {
     }
 
     @Test
-    fun `bare official site root opens a direct in-app section`() {
+    fun `bare official site root normalizes to the exact in-app section route`() {
         val rootUrl = "https://earthguardians.org"
         val route = Deeplinks.parseRoute(rootUrl)
 
-        assertEquals("section?u=${Deeplinks.encode(rootUrl)}", route)
+        val expectedRoute = "section?u=https%3A%2F%2Fearthguardians.org"
+        assertEquals(expectedRoute, route)
         assertEquals(route, Deeplinks.parseRoute("earthguardians://$route"))
         assertEquals(rootUrl, Deeplinks.decode(route!!.substringAfter("section?u=")))
     }

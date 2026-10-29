@@ -40,9 +40,9 @@ final class DeeplinksTests: XCTestCase {
         XCTAssertNil(Deeplinks.parseRoute("earthguardians://unknown"))
     }
 
-    func testBareOfficialRootLinkOpensASectionWithoutAPath() {
+    func testBareOfficialRootLinkNormalizesToExactSectionRoute() {
         let rootURL = "https://earthguardians.org"
-        let expected = "section?u=\(Deeplinks.encode(rootURL))"
+        let expected = "section?u=https%3A%2F%2Fearthguardians.org"
 
         XCTAssertEqual(Deeplinks.parseRoute(rootURL), expected)
         XCTAssertEqual(Deeplinks.parseRoute("earthguardians://\(expected)"), expected)
