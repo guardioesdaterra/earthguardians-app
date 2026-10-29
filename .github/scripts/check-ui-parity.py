@@ -576,12 +576,16 @@ def check_native_maps(matrix: dict) -> None:
         "MapSelection::Region",
         "MapSelection::Crew",
         "MapSelection::Grant",
-        "if (selected != null) SelectionCard(selected)",
         "is MapSelection.Region",
         "is MapSelection.Crew",
         "is MapSelection.Grant",
     ):
         require(token in android_maps, f"Android map marker/detail contract is missing: {token}")
+    require(re.search(
+        r"if\s*\(\s*selected\s*!=\s*null\s*\)\s*\{\s*SelectionCard\(\s*selection\s*=\s*selected\s*,",
+        android_maps,
+        re.DOTALL,
+    ), "Android selected marker details must render through a guarded named-argument SelectionCard call")
     for token in (
         "selection.value.region",
         "selection.value.activeCrews",
