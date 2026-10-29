@@ -61,6 +61,16 @@
       "dark_filename": "eg-brand-mark-on-dark.png"
     }
   },
+  "native_maps": {
+    "picker_options": ["Crews", "Project Grants"],
+    "public_grants_path": "project-grants",
+    "private_manager_path": "eg-grants",
+    "datasets": {
+      "crew-regions": ["id", "region", "latitude", "longitude", "activeCrews", "inactiveCrews", "totalMembers", "countries"],
+      "crew-locations": ["name", "country", "city", "region", "status", "lat", "lng"],
+      "project-grants": ["project_title", "country_province", "latitude", "longitude", "direct_beneficiaries", "indirect_beneficiaries"]
+    }
+  },
   "official_images": [
     {
       "key": "community",
@@ -140,7 +150,7 @@
       "name": "04-maps",
       "android_route": "earthguardians://maps",
       "ios_route": "maps",
-      "android_expected_text": "EG-Maps"
+      "android_expected_text": "Maps"
     },
     {
       "name": "05-more",

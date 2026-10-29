@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check shared Android/iOS route and onboarding imagery contracts."""
+"""Check shared Android/iOS UI, route, imagery, and native map contracts."""
 from __future__ import annotations
 
 import json
@@ -26,6 +26,13 @@ ANDROID_ACTIVITY = ROOT / "app/src/main/kotlin/org/earthguardians/app/MainActivi
 ANDROID_APP_ROOT = ROOT / "app/src/main/kotlin/org/earthguardians/app/ui/root/EgAppRoot.kt"
 IOS_APP = ROOT / "ios/EarthGuardians/App/EarthGuardiansApp.swift"
 IOS_ROOT = ROOT / "ios/EarthGuardians/UI/Root/RootView.swift"
+ANDROID_MAPS = ROOT / "app/src/main/kotlin/org/earthguardians/app/ui/maps/MapsScreen.kt"
+IOS_MAPS = ROOT / "ios/EarthGuardians/UI/Maps/MapsScreen.swift"
+ANDROID_MAP_REPOSITORY = ROOT / "app/src/main/kotlin/org/earthguardians/app/data/repo/MapAssetRepository.kt"
+ANDROID_RESOURCE_LIBRARY = ROOT / "app/src/main/kotlin/org/earthguardians/app/data/repo/ResourceLibrary.kt"
+IOS_RESOURCE_LIBRARY = ROOT / "ios/Packages/EGCore/Sources/EGCore/ResourceLibrary.swift"
+ANDROID_MAP_ASSETS = ROOT / "app/src/main/assets/maps"
+IOS_MAP_ASSETS = ROOT / "ios/EarthGuardians/Resources/Maps"
 REQUIRED_SCREEN_NAMES = [
     "01-home",
     "02-events",
@@ -459,6 +466,148 @@ def check_startup_handoff(matrix: dict, android_script: str, ios_script: str) ->
             "iOS must route the retained page argument to its section destination")
 
 
+def check_native_maps(matrix: dict) -> None:
+    contract = matrix["native_maps"]
+    picker_options = contract["picker_options"]
+    public_grants_path = contract["public_grants_path"]
+    private_manager_path = contract["private_manager_path"]
+    datasets = contract["datasets"]
+
+    android_maps = read_text(ANDROID_MAPS)
+    ios_maps = read_text(IOS_MAPS)
+    android_picker = re.search(r"EgSegmentedControl\(\s*options\s*=\s*listOf\((.*?)\)", android_maps, re.DOTALL)
+    ios_picker = re.search(r"EgSegmented\(options:\s*\[(.*?)\]", ios_maps, re.DOTALL)
+    require(android_picker is not None, "Android native Maps screen must expose its dataset picker")
+    require(ios_picker is not None, "iOS native Maps screen must expose its dataset picker")
+    android_options = re.findall(r'"([^"]+)"', android_picker.group(1))
+    ios_options = re.findall(r'"([^"]+)"', ios_picker.group(1))
+    require(android_options == picker_options,
+            "Android public map picker must contain only Crews and Project Grants")
+    require(ios_options == picker_options,
+            "iOS public map picker must contain only Crews and Project Grants")
+
+    require(private_manager_path not in android_maps.lower() and private_manager_path not in ios_maps.lower(),
+            "the manager-only grants route must not appear in either public native map picker")
+    android_library = read_text(ANDROID_RESOURCE_LIBRARY)
+    ios_library = read_text(IOS_RESOURCE_LIBRARY)
+    require(f'id = "project-grants"' in android_library and
+            f'canonicalPath = "{public_grants_path}"' in android_library,
+            "Android resource metadata must keep Project Grants on the public /project-grants route")
+    require(f'id: "project-grants"' in ios_library and
+            f'canonicalPath: "{public_grants_path}"' in ios_library,
+            "iOS resource metadata must keep Project Grants on the public /project-grants route")
+
+    android_repository = read_text(ANDROID_MAP_REPOSITORY)
+    for dataset in datasets:
+        require(f'"maps/{dataset}.json"' in android_repository,
+                f"Android native maps must load the public {dataset} snapshot")
+        require(f'MapsDataLoader.load("{dataset}"' in ios_maps,
+                f"iOS native maps must load the public {dataset} snapshot")
+
+        android_data = json.loads(read_text(ANDROID_MAP_ASSETS / f"{dataset}.json"))
+        ios_data = json.loads(read_text(IOS_MAP_ASSETS / f"{dataset}.json"))
+        required_fields = set(datasets[dataset])
+        for platform, records in (("Android", android_data), ("iOS", ios_data)):
+            require(isinstance(records, list) and records,
+                    f"{platform} {dataset} snapshot must contain public map records")
+            require(all(isinstance(record, dict) and required_fields.issubset(record)
+                        for record in records),
+                    f"{platform} {dataset} records are missing required public fields")
+        require(android_data == ios_data,
+                f"Android and iOS public {dataset} snapshots must stay in sync")
+
+    require("if (tab == 0) MapMode.Crews else MapMode.Grants" in android_maps and
+            'options = listOf("Crews", "Project Grants")' in android_maps,
+            "Android picker selections must switch between native crews and grant maps")
+    require("if selection == 0" in ios_maps and "CrewsMapScreen()" in ios_maps and
+            "ProjectGrantsMapScreen()" in ios_maps,
+            "iOS picker selections must open both native public map datasets")
+    require("selected = null" in android_maps and "query = \"\"" in android_maps,
+            "Android must clear stale marker details and searches when changing map datasets")
+    for token in (
+        "if (mode == MapMode.Crews)",
+        "currentData.regions.filter(::matches)",
+        "currentData.crews.forEachIndexed",
+        'add(currentMap, "region:${region.id}"',
+        'add(currentMap, "crew:$index"',
+        "currentData.grants.forEachIndexed",
+        'add(currentMap, "grant:$index"',
+    ):
+        require(token in android_maps, f"Android map mode is missing marker rendering: {token}")
+
+    android_root = read_text(ANDROID_APP_ROOT)
+    ios_root = read_text(IOS_ROOT)
+    require("composable(Routes.MAPS)" in android_root and "MapsScreen(" in android_root,
+            "Android Maps tab must open the native map screen")
+    require("MapsScreen {" in ios_root and ".tag(Tab.maps)" in ios_root,
+            "iOS Maps tab must open the native map screen")
+
+    for token in (
+        "readyMap.setOnMarkerClickListener",
+        "selectionCallback?.invoke(selectionFor(marker.title))",
+        'key?.startsWith("region:")',
+        'key?.startsWith("crew:")',
+        'key?.startsWith("grant:")',
+        "MapSelection::Region",
+        "MapSelection::Crew",
+        "MapSelection::Grant",
+        "if (selected != null) SelectionCard(selected)",
+        "is MapSelection.Region",
+        "is MapSelection.Crew",
+        "is MapSelection.Grant",
+    ):
+        require(token in android_maps, f"Android map marker/detail contract is missing: {token}")
+    for token in (
+        "selection.value.region",
+        "selection.value.activeCrews",
+        "selection.value.name",
+        "selection.value.status",
+        "selection.value.project_title",
+        "selection.value.country_province",
+        "selection.value.direct_beneficiaries",
+        "selection.value.indirect_beneficiaries",
+    ):
+        require(token in android_maps, f"Android map detail panel is missing field: {token}")
+
+    ios_crews = source_section(
+        ios_maps, "private struct CrewsMapScreen", "// MARK: - Project grants",
+        "iOS crews map")
+    for token in (
+        "if let selectedLocation",
+        "crewLocationCard(selectedLocation)",
+        "else if let selectedRegion",
+        "crewRegionCard(selectedRegion)",
+    ):
+        require(token in ios_crews, f"iOS crews map detail selection is missing: {token}")
+    ios_locations = source_section(
+        ios_maps, "private var crewLocationsMap: some View", "private var crewRegionsMap: some View",
+        "iOS individual crews map")
+    ios_regions = source_section(
+        ios_maps, "private var crewRegionsMap: some View", "private func load()",
+        "iOS crew regions map")
+    ios_grants = source_section(
+        ios_maps, "private struct ProjectGrantsMapScreen", "// MARK: - Shared map UI",
+        "iOS project grants map")
+    for source, tokens, label in (
+        (ios_locations, ("MapAnnotation", "selectedLocation = item", "selectedRegion = nil"), "individual crew marker"),
+        (ios_regions, ("MapAnnotation", "selectedRegion = item", "selectedLocation = nil"), "crew region marker"),
+        (ios_grants, ("MapAnnotation", "selectedGrant = grant", "if let selectedGrant", "detailCard(title: selectedGrant.project_title"), "project grant marker"),
+    ):
+        for token in tokens:
+            require(token in source, f"iOS {label} selection/detail contract is missing: {token}")
+    for token in (
+        'detailCard(title: item.region',
+        'detailRow("Active crews"',
+        'detailCard(title: item.name',
+        'detailRow("Status"',
+        'detailRow("Region"',
+        'detailRow("Direct beneficiaries"',
+        'detailRow("Indirect beneficiaries"',
+        "selectedGrant.country_province",
+    ):
+        require(token in ios_maps, f"iOS map detail panel is missing field: {token}")
+
+
 def main() -> int:
     matrix = json.loads(MATRIX_PATH.read_text(encoding="utf-8"))
     screens = matrix.get("screens", [])
@@ -492,7 +641,8 @@ def main() -> int:
     check_image_views(matrix, android_key_by_symbol, ios_key_by_symbol)
     check_home_logo(matrix)
     check_startup_handoff(matrix, android_script, ios_script)
-    print(f"UI parity contract OK: {len(screens)} shared routes, six local photos, theme-aware Home logo, and cold-start handoff")
+    check_native_maps(matrix)
+    print(f"UI parity contract OK: {len(screens)} shared routes, six local photos, theme-aware Home logo, cold-start handoff, and native public maps")
     return 0
 
 
