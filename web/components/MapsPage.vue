@@ -22,7 +22,7 @@ function isMapsDataset(value: unknown): value is MapsDataset {
   const candidate = value as Partial<MapsDataset>
   if (candidate.schemaVersion !== 1 || !Array.isArray(candidate.regions) || !Array.isArray(candidate.crews) || !Array.isArray(candidate.grants)) return false
   const validRegion = (row: CrewRegion) => typeof row.id === 'string' && typeof row.region === 'string' && [row.latitude, row.longitude, row.activeCrews, row.inactiveCrews, row.totalMembers, row.countries].every(Number.isFinite)
-  const validCrew = (row: CrewLocation) => typeof row.name === 'string' && typeof row.city === 'string' && typeof row.country === 'string' && typeof row.region === 'string' && typeof row.status === 'string' && (row.state == null || typeof row.state === 'string') && [row.lat, row.lng].every(Number.isFinite)
+  const validCrew = (row: CrewLocation) => typeof row.name === 'string' && typeof row.city === 'string' && typeof row.country === 'string' && typeof row.region === 'string' && (row.status === 'active' || row.status === 'inactive') && (row.state == null || typeof row.state === 'string') && [row.lat, row.lng].every(Number.isFinite)
   const validGrant = (row: ProjectGrant) => typeof row.project_title === 'string' && typeof row.country_province === 'string' && [row.latitude, row.longitude, row.direct_beneficiaries, row.indirect_beneficiaries].every(Number.isFinite)
   return candidate.regions.every(validRegion) && candidate.crews.every(validCrew) && candidate.grants.every(validGrant)
 }
@@ -64,6 +64,11 @@ function onSearchInput() {
   selected.value = null
   visibleCount.value = null
 }
+function clearSearch() {
+  query.value = ''
+  selected.value = null
+  visibleCount.value = null
+}
 watch(() => String(route.query.layer || ''), (layer) => {
   const nextMode = layer === 'grants' ? 'grants' : 'crews'
   if (mode.value !== nextMode) mode.value = nextMode
@@ -84,7 +89,10 @@ useHead({ title: 'Maps · Earth Guardians' })
         <button class="theme-option" :class="{ active: mode === 'crews' }" type="button" role="tab" :aria-selected="mode === 'crews'" @click="mode = 'crews'">Crews</button>
         <button class="theme-option" :class="{ active: mode === 'grants' }" type="button" role="tab" :aria-selected="mode === 'grants'" @click="mode = 'grants'">Project Grants</button>
       </div>
-      <input v-model="query" class="search-field map-search" type="search" :placeholder="mode === 'crews' ? 'Search crews, places or status' : 'Search projects or places'" :aria-label="mode === 'crews' ? 'Search crews, states, regions or status' : 'Search projects or places'" @input="onSearchInput">
+      <div class="map-search-wrap">
+        <input v-model="query" class="search-field map-search" type="search" :placeholder="mode === 'crews' ? 'Search crews, places, regions or status' : 'Search projects or locations'" :aria-label="mode === 'crews' ? 'Search crew name, city, state, country, region or status; and region name or ID' : 'Search project title or location'" @input="onSearchInput">
+        <button v-if="query" class="map-search-clear" type="button" @click="clearSearch">Clear search</button>
+      </div>
     </div>
 
     <div v-if="stale" class="notice map-stale" role="status">Offline · showing the bundled public map snapshot. Map tiles still need a connection.</div>
@@ -97,7 +105,7 @@ useHead({ title: 'Maps · Earth Guardians' })
         <MapLibreCanvas v-if="hasModeRecords" :key="mapMountKey" :dataset="dataset" :mode="mode" :query="query" @select="selected = $event" @map-error="tilesError = $event" @result-count="visibleCount = $event" />
         <div v-else class="map-empty-state" role="status">No public {{ mode === 'crews' ? 'Crew locations' : 'Project Grant records' }} are available in this release.</div>
         <div v-if="query.trim() && hasModeRecords && visibleCount === 0" class="map-empty-state map-empty-state--search" role="status">
-          <div><p>No public map records match “{{ query }}”.</p><button class="text-button" type="button" @click="query = ''">Clear search</button></div>
+          <div><p>No public map records match “{{ query }}”.</p><button class="text-button" type="button" @click="clearSearch">Clear search</button></div>
         </div>
         <div class="map-data-count" aria-live="polite">
           <span v-if="query.trim() && visibleCount !== null">{{ visibleCount }} matching map marker{{ visibleCount === 1 ? '' : 's' }}</span>
@@ -113,8 +121,8 @@ useHead({ title: 'Maps · Earth Guardians' })
           </template>
           <template v-else-if="selected.type === 'crew'">
             <strong>{{ selected.value.name }}</strong>
-            <span>{{ selected.value.city }}{{ selected.value.state ? `, ${selected.value.state}` : '' }}, {{ selected.value.country }} · {{ selected.value.region }}</span>
-            <span class="map-status-value">{{ selected.value.status.charAt(0).toUpperCase() + selected.value.status.slice(1) }}</span>
+            <span>{{ [selected.value.city, selected.value.state, selected.value.country].filter(Boolean).join(', ') }} · {{ selected.value.region }}</span>
+            <span class="map-status-value" :class="{ 'map-status-value--inactive': selected.value.status === 'inactive' }">{{ selected.value.status.charAt(0).toUpperCase() + selected.value.status.slice(1) }}</span>
           </template>
           <template v-else>
             <strong>{{ selected.value.project_title }}</strong>
