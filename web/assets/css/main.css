@@ -110,6 +110,8 @@ p { color: var(--muted); line-height: 1.55; }
 .bottom-nav { position: fixed; z-index: 30; right: 50%; bottom: max(10px, calc(env(safe-area-inset-bottom) + 10px)); display: flex; gap: 3px; width: min(calc(100% - 28px), 620px); padding: 0 9px; transform: translateX(50%); border: 1px solid var(--line); border-radius: 24px; background: color-mix(in srgb, var(--surface-2) 96%, transparent); box-shadow: 0 5px 18px rgba(0,0,0,.08); backdrop-filter: blur(22px); }
 .nav-item { display: grid; flex: 1; justify-items: center; align-content: center; gap: 3px; min-height: 64px; padding: 4px 2px; border-radius: 14px; color: var(--muted); font-size: 10px; font-weight: 600; transition: color .18s ease; }
 .nav-icon { display: block; width: 24px; height: 24px; fill: currentColor; }
+.nav-item > .nav-icon { transform: translateY(-13px); }
+.nav-item > span { transform: translateY(6px); }
 .nav-item.active { background: transparent; color: var(--red); }
 .app-shell--home .brand { gap: 10px; }
 .app-shell--home .brand-copy strong { font-size: 12px; font-weight: 700; letter-spacing: 2.2px; }
