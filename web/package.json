@@ -7,13 +7,18 @@
   "scripts": {
     "dev": "nuxi dev",
     "build": "nuxi build",
+    "prebuild": "node scripts/sync-map-assets.mjs",
     "generate": "nuxi generate",
+    "pregenerate": "node scripts/sync-map-assets.mjs",
     "test": "node --test tests/*.test.mjs",
     "preview": "nuxi preview",
     "clean": "nuxi cleanup",
     "feeds": "node scripts/fetch-feeds.mjs",
     "icons": "node scripts/make-icons.mjs",
     "postinstall": "nuxi prepare"
+  },
+  "dependencies": {
+    "maplibre-gl": "^6.16.0"
   },
   "devDependencies": {
     "nuxt": "^3.15.4",

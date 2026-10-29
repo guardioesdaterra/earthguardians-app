@@ -2,6 +2,7 @@ package org.earthguardians.app.data.parse
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
+import org.earthguardians.app.data.model.CrewGrantMatch
 import org.earthguardians.app.data.model.CrewLocation
 import org.earthguardians.app.data.model.CrewRegion
 import org.earthguardians.app.data.model.ProjectGrant
@@ -12,4 +13,5 @@ object MapAssetParser {
     fun crewRegions(raw: String): List<CrewRegion> = json.decodeFromString(raw)
     fun crewLocations(raw: String): List<CrewLocation> = json.decodeFromString(raw)
     fun projectGrants(raw: String): List<ProjectGrant> = json.decodeFromString(raw)
+    fun crewGrantMap(raw: String): Map<String, List<CrewGrantMatch>> = json.decodeFromString(raw)
 }

@@ -342,7 +342,11 @@ private struct EventCarouselCard: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 8) {
                 ZStack(alignment: .topLeading) {
-                    EgImage(url: event.imageUrl, cornerRadius: 18)
+                    EgImage(
+                        url: event.imageUrl,
+                        localImageName: OfficialSiteImages.featuredEvent(for: event.url),
+                        cornerRadius: 18
+                    )
                         .frame(width: 224, height: 120)
                     EgPill(egShortDate(event.startsAt), tone: .neutral)
                         .padding(8)

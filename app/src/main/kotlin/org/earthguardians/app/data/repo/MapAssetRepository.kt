@@ -14,6 +14,9 @@ class MapAssetRepository(context: Context) {
             regions = read("maps/crew-regions.json", MapAssetParser::crewRegions),
             crews = read("maps/crew-locations.json", MapAssetParser::crewLocations),
             grants = read("maps/project-grants.json", MapAssetParser::projectGrants),
+            crewGrantMap = appContext.assets.open("maps/crew-grants-map.json").bufferedReader().use {
+                MapAssetParser.crewGrantMap(it.readText())
+            },
         )
     }
 

@@ -55,6 +55,7 @@ fun PostRowCard(
     ) {
         EgImage(
             url = post.imageUrl,
+            localImageRes = OfficialSiteImages.featuredStory(post.url),
             modifier = Modifier.size(72.dp),
             cornerRadius = 18.dp,
             contentDescription = post.title,

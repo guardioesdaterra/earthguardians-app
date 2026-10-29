@@ -25,9 +25,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -270,6 +272,7 @@ fun EgSearchField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier,
+    onClear: (() -> Unit)? = null,
 ) {
     val palette = egPalette
     OutlinedTextField(
@@ -284,6 +287,17 @@ fun EgSearchField(
                 tint = palette.muted,
                 modifier = Modifier.size(20.dp),
             )
+        },
+        trailingIcon = {
+            if (value.isNotEmpty() && onClear != null) {
+                IconButton(onClick = onClear) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "Clear search",
+                        tint = palette.muted,
+                    )
+                }
+            }
         },
         shape = RoundedCornerShape(EgRadius.pill),
         colors = OutlinedTextFieldDefaults.colors(

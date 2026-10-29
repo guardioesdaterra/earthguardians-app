@@ -475,27 +475,45 @@ def check_startup_handoff(matrix: dict, android_script: str, ios_script: str) ->
 def check_native_maps(matrix: dict) -> None:
     contract = matrix["native_maps"]
     picker_options = contract["picker_options"]
+    experience_options = ["Native", "EG-Maps"]
+    expected_public_datasets = ["Crews", "Project Grants"]
     public_grants_path = contract["public_grants_path"]
     private_manager_path = contract["private_manager_path"]
     datasets = contract["datasets"]
 
     android_maps = read_text(ANDROID_MAPS)
     ios_maps = read_text(IOS_MAPS)
-    android_picker = re.search(r"EgSegmentedControl\(\s*options\s*=\s*listOf\((.*?)\)", android_maps, re.DOTALL)
-    ios_picker = re.search(r"EgSegmented\(options:\s*\[(.*?)\]", ios_maps, re.DOTALL)
-    require(android_picker is not None, "Android native Maps screen must expose its dataset picker")
-    require(ios_picker is not None, "iOS native Maps screen must expose its dataset picker")
-    android_options = re.findall(r'"([^"]+)"', android_picker.group(1))
-    ios_options = re.findall(r'"([^"]+)"', ios_picker.group(1))
-    require(android_options == picker_options,
-            "Android public map picker must contain only Crews and Project Grants")
-    require(ios_options == picker_options,
-            "iOS public map picker must contain only Crews and Project Grants")
+    require(picker_options == expected_public_datasets,
+            "native Maps contract must expose exactly the two public datasets: Crews and Project Grants")
+    android_controls = re.findall(
+        r"EgSegmentedControl\(\s*options\s*=\s*listOf\((.*?)\)", android_maps, re.DOTALL)
+    ios_controls = re.findall(r"EgSegmented\(options:\s*\[(.*?)\]", ios_maps, re.DOTALL)
+    require(len(android_controls) == 2,
+            "Android Maps screen must expose an experience selector and a public dataset picker")
+    require(len(ios_controls) == 2,
+            "iOS Maps screen must expose an experience selector and a public dataset picker")
 
-    require(private_manager_path not in android_maps.lower() and private_manager_path not in ios_maps.lower(),
-            "the manager-only grants route must not appear in either public native map picker")
+    android_experience_options = re.findall(r'"([^"]+)"', android_controls[0])
+    ios_experience_options = re.findall(r'"([^"]+)"', ios_controls[0])
+    require(android_experience_options == experience_options,
+            "Android Maps experience selector must contain Native and EG-Maps")
+    require(ios_experience_options == experience_options,
+            "iOS Maps experience selector must contain Native and EG-Maps")
+
+    android_dataset_options = re.findall(r'"([^"]+)"', android_controls[1])
+    ios_dataset_options = re.findall(r'"([^"]+)"', ios_controls[1])
+    require(android_dataset_options == picker_options,
+            "Android public map dataset picker must contain exactly Crews and Project Grants")
+    require(ios_dataset_options == picker_options,
+            "iOS public map dataset picker must contain exactly Crews and Project Grants")
+
     android_library = read_text(ANDROID_RESOURCE_LIBRARY)
     ios_library = read_text(IOS_RESOURCE_LIBRARY)
+    require(private_manager_path.lower() not in android_maps.lower() and
+            private_manager_path.lower() not in ios_maps.lower() and
+            private_manager_path.lower() not in android_library.lower() and
+            private_manager_path.lower() not in ios_library.lower(),
+            "private /eg-grants manager route must remain outside public native Maps and resource metadata")
     require(f'id = "project-grants"' in android_library and
             f'canonicalPath = "{public_grants_path}"' in android_library,
             "Android resource metadata must keep Project Grants on the public /project-grants route")
@@ -525,8 +543,9 @@ def check_native_maps(matrix: dict) -> None:
     require("if (tab == 0) MapMode.Crews else MapMode.Grants" in android_maps and
             'options = listOf("Crews", "Project Grants")' in android_maps,
             "Android picker selections must switch between native crews and grant maps")
-    require("if selection == 0" in ios_maps and "CrewsMapScreen()" in ios_maps and
-            "ProjectGrantsMapScreen()" in ios_maps,
+    require("if selection == 0" in ios_maps and
+            re.search(r"CrewsMapScreen\(\s*focusCrew:\s*focusedCrew\s*\)\s*\{\s*project\s+in\s+focusedProject\s*=\s*project\s*selection\s*=\s*1\s*\}", ios_maps, re.DOTALL) and
+            re.search(r"ProjectGrantsMapScreen\(\s*focusProject:\s*focusedProject\s*\)\s*\{\s*crew\s+in\s+focusedCrew\s*=\s*crew\s*selection\s*=\s*0\s*\}", ios_maps, re.DOTALL),
             "iOS picker selections must open both native public map datasets")
     require("selected = null" in android_maps and "query = \"\"" in android_maps,
             "Android must clear stale marker details and searches when changing map datasets")
@@ -557,50 +576,68 @@ def check_native_maps(matrix: dict) -> None:
         "MapSelection::Region",
         "MapSelection::Crew",
         "MapSelection::Grant",
-        "if (selected != null) SelectionCard(selected)",
         "is MapSelection.Region",
         "is MapSelection.Crew",
         "is MapSelection.Grant",
     ):
         require(token in android_maps, f"Android map marker/detail contract is missing: {token}")
+    require(re.search(
+        r"if\s*\(\s*selected\s*!=\s*null\s*\)\s*\{\s*SelectionCard\(\s*selection\s*=\s*selected\s*,",
+        android_maps,
+        re.DOTALL,
+    ), "Android selected marker details must render through a guarded named-argument SelectionCard call")
     for token in (
         "selection.value.region",
         "selection.value.activeCrews",
-        "selection.value.name",
-        "selection.value.status",
-        "selection.value.project_title",
-        "selection.value.country_province",
-        "selection.value.direct_beneficiaries",
-        "selection.value.indirect_beneficiaries",
+        "val crew = selection.value",
+        "crew.name",
+        "crew.status",
+        "val grant = selection.value",
+        "grant.project_title",
+        "grant.country_province",
+        "grant.direct_beneficiaries",
+        "grant.indirect_beneficiaries",
     ):
         require(token in android_maps, f"Android map detail panel is missing field: {token}")
 
     ios_crews = source_section(
         ios_maps, "private struct CrewsMapScreen", "// MARK: - Project grants",
         "iOS crews map")
-    for token in (
-        "if let selectedLocation",
-        "crewLocationCard(selectedLocation)",
-        "else if let selectedRegion",
-        "crewRegionCard(selectedRegion)",
-    ):
-        require(token in ios_crews, f"iOS crews map detail selection is missing: {token}")
+    require(
+        re.search(
+            r"if\s+let\s+selectedRegion\s*\{[^{}]*\bcrewRegionCard\(\s*selectedRegion\s*\)[^{}]*\}\s*else\s+if\s+let\s+selectedLocation\s*\{[^{}]*\bcrewLocationCard\(\s*selectedLocation\s*\)[^{}]*\}",
+            ios_crews,
+        ) is not None,
+        "iOS crews map details must prefer the selected region before an individual selected crew",
+    )
     ios_locations = source_section(
-        ios_maps, "private var crewLocationsMap: some View", "private var crewRegionsMap: some View",
-        "iOS individual crews map")
-    ios_regions = source_section(
-        ios_maps, "private var crewRegionsMap: some View", "private func load()",
-        "iOS crew regions map")
+        ios_maps, "private var crewLocationsMap: some View", "private func load()",
+        "iOS shared crews map")
+    crew_map_branches = re.search(
+        r"if\s+showsRegionAggregates\s*\{(?P<regions>(?:(?!\}\s*else\s*\{)[\s\S])*)\}\s*else\s*\{(?P<locations>[\s\S]*)",
+        ios_locations,
+    )
+    require(crew_map_branches is not None,
+            "iOS shared crews map must branch between aggregate regions and individual locations")
+    for source, tokens, label in (
+        (crew_map_branches.group("regions"),
+         ("SatelliteMapView(", "items: filteredRegions", "selectedRegion = item"),
+         "crew region"),
+        (crew_map_branches.group("locations"),
+         ("SatelliteMapView(", "items: filteredLocations", "selectedLocation = item"),
+         "individual crew"),
+    ):
+        for token in tokens:
+            require(token in source, f"iOS {label} branch is missing its data/selection pattern: {token}")
+    for token in ("selectedLocation = nil", "selectedRegion = nil"):
+        require(token in ios_crews, f"iOS crews map must clear the stale opposite selection: {token}")
     ios_grants = source_section(
         ios_maps, "private struct ProjectGrantsMapScreen", "// MARK: - Shared map UI",
         "iOS project grants map")
-    for source, tokens, label in (
-        (ios_locations, ("MapAnnotation", "selectedLocation = item", "selectedRegion = nil"), "individual crew marker"),
-        (ios_regions, ("MapAnnotation", "selectedRegion = item", "selectedLocation = nil"), "crew region marker"),
-        (ios_grants, ("MapAnnotation", "selectedGrant = grant", "if let selectedGrant", "detailCard(title: selectedGrant.project_title"), "project grant marker"),
-    ):
-        for token in tokens:
-            require(token in source, f"iOS {label} selection/detail contract is missing: {token}")
+    for token in ("SatelliteMapView(", "items: filteredGrants", "onSelect: { grant in",
+                  "selectedGrant = grant", "if let selectedGrant", "projectDetailCard(selectedGrant)",
+                  "detailCard(title: project.project_title"):
+        require(token in ios_grants, f"iOS project grant marker selection/detail contract is missing: {token}")
     for token in (
         'detailCard(title: item.region',
         'detailRow("Active crews"',
@@ -609,7 +646,7 @@ def check_native_maps(matrix: dict) -> None:
         'detailRow("Region"',
         'detailRow("Direct beneficiaries"',
         'detailRow("Indirect beneficiaries"',
-        "selectedGrant.country_province",
+        "subtitle: project.country_province",
     ):
         require(token in ios_maps, f"iOS map detail panel is missing field: {token}")
 

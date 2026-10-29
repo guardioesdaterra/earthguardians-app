@@ -36,10 +36,18 @@ data class ProjectGrant(
     val indirect_beneficiaries: Int,
 )
 
+@Serializable
+data class CrewGrantMatch(
+    val key: String,
+    val reason: String,
+    val distanceKm: Double? = null,
+)
+
 data class NativeMapsData(
     val regions: List<CrewRegion>,
     val crews: List<CrewLocation>,
     val grants: List<ProjectGrant>,
+    val crewGrantMap: Map<String, List<CrewGrantMatch>>,
 )
 
 sealed interface NativeMapsState {

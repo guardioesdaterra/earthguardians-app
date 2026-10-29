@@ -1,5 +1,6 @@
 package org.earthguardians.app.ui.common
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -47,6 +49,7 @@ import org.earthguardians.app.ui.theme.egPalette
 @Composable
 fun EgImage(
     url: String?,
+    localImageRes: Int? = null,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
     cornerRadius: Dp = EgRadius.tile,
@@ -54,7 +57,14 @@ fun EgImage(
     val palette = egPalette
     val shape = RoundedCornerShape(cornerRadius)
     Box(modifier = modifier.clip(shape).background(palette.glass, shape)) {
-        if (url != null) {
+        if (localImageRes != null) {
+            Image(
+                painter = painterResource(localImageRes),
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else if (url != null) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(url)
