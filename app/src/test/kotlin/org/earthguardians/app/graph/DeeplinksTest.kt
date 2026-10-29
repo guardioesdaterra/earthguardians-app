@@ -145,6 +145,23 @@ class DeeplinksTest {
     }
 
     @Test
+    fun `bare official site root opens a direct in-app section`() {
+        val rootUrl = "https://earthguardians.org"
+        val route = Deeplinks.parseRoute(rootUrl)
+
+        assertEquals("section?u=${Deeplinks.encode(rootUrl)}", route)
+        assertEquals(route, Deeplinks.parseRoute("earthguardians://$route"))
+        assertEquals(rootUrl, Deeplinks.decode(route!!.substringAfter("section?u=")))
+    }
+
+    @Test
+    fun `official root link with query preserves argument and rejects lookalike host`() {
+        val rootLink = "https://earthguardians.org?utm_source=app"
+        assertEquals("section?u=${Deeplinks.encode(rootLink)}", Deeplinks.parseRoute(rootLink))
+        assertNull(Deeplinks.parseRoute("https://earthguardians.org.example.com/donate"))
+    }
+
+    @Test
     fun `off-site urls do not route`() {
         assertNull(Deeplinks.parseRoute("https://example.com/donate"))
         assertNull(Deeplinks.parseRoute("ftp://www.earthguardians.org/x"))

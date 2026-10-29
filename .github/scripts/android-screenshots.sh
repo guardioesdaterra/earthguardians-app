@@ -8,6 +8,7 @@
 set -uo pipefail
 
 PKG="org.earthguardians.app"
+ONBOARDING_DIRECT_ROUTE="earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate"
 SHOTS="shots"
 LOG="$SHOTS/app-log.txt"
 mkdir -p "$SHOTS"
@@ -128,6 +129,7 @@ if [ -z "$APK_PATH" ]; then
 fi
 echo "[shots] installing $APK_PATH"
 "$ADB" install -r -t "$APK_PATH" || { dump_app_log "adb install failed"; exit 1; }
+"$ADB" shell pm clear "$PKG" >/dev/null || { dump_app_log "could not reset app data for first-run onboarding"; exit 1; }
 "$ADB" shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS > /dev/null 2>&1 || true
 
 # Calm animations so captures are steady.
@@ -135,7 +137,7 @@ echo "[shots] installing $APK_PATH"
 "$ADB" shell settings put global transition_animation_scale 0 > /dev/null
 "$ADB" shell settings put global animator_duration_scale 0 > /dev/null
 
-"$ADB" shell am start -n "$PKG/.MainActivity" || { dump_app_log "am start failed"; exit 1; }
+deeplink "$ONBOARDING_DIRECT_ROUTE" || { dump_app_log "onboarding direct-page launch failed"; exit 1; }
 
 # Cold-start crash guard: require the MAIN ACTIVITY foreground within 30s —
 # a blank/launcher screen or a startup crash is a hard failure with output.
@@ -159,7 +161,13 @@ fi
 
 # ── Complete onboarding (Skip → onFinished) ──────────────────────────────────
 tap_text "Skip" 10 || tap_text "Get started" 4
-sleep 2
+if wait_visible "Donate"; then
+  sleep 2
+  shot "00-onboarding-direct-page"
+else
+  dump_app_log "direct page argument was lost across onboarding"
+  exit 1
+fi
 
 # ── Screen with expectations: name | route | text the screen must show ──────
 declare -a SCREENS=(

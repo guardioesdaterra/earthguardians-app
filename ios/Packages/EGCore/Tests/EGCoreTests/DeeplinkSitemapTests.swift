@@ -40,6 +40,23 @@ final class DeeplinksTests: XCTestCase {
         XCTAssertNil(Deeplinks.parseRoute("earthguardians://unknown"))
     }
 
+    func testBareOfficialRootLinkOpensASectionWithoutAPath() {
+        let rootURL = "https://earthguardians.org"
+        let expected = "section?u=\(Deeplinks.encode(rootURL))"
+
+        XCTAssertEqual(Deeplinks.parseRoute(rootURL), expected)
+        XCTAssertEqual(Deeplinks.parseRoute("earthguardians://\(expected)"), expected)
+        XCTAssertEqual(Deeplinks.decode(String(expected.dropFirst("section?u=".count))), rootURL)
+    }
+
+    func testColdLaunchPageArgumentOpensItsDirectDestination() {
+        let pageArgument = "section?u=\(Deeplinks.encode("https://www.earthguardians.org/donate"))"
+        XCTAssertEqual(
+            Deeplinks.parseRoute("earthguardians://\(pageArgument)"),
+            pageArgument
+        )
+    }
+
     func testEventPostSectionEncodeOnce() {
         XCTAssertEqual(
             Deeplinks.parseRoute("earthguardians://event?e=https%3A%2F%2Fwww.earthguardians.org%2Fevents%2Fx"),
