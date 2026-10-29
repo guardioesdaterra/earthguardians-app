@@ -14,8 +14,12 @@ const image = computed(() => event.value?.imageUrl || post.value?.imageUrl || ''
 const summary = computed(() => event.value?.description || post.value?.teaser || 'This link opens a page from the official Earth Guardians website.')
 const destinationUrl = computed(() => props.destination.argument || 'https://www.earthguardians.org')
 const shareStatus = ref('')
-const readerHtml = ref('')
 const readerScale = ref(100)
+const readerHtml = computed(() => {
+  if (!post.value) return ''
+  const body = sanitizeStoryHtml(post.value.contentHtml || '').trim()
+  return body || sanitizeStoryHtml(post.value.teaser || '').trim()
+})
 
 function sectionTitle(url?: string) {
   if (!url) return 'Earth Guardians page'
@@ -71,10 +75,6 @@ function sanitizeStoryHtml(input: string) {
   Array.from(parsed.body.childNodes).map(cleanNode).filter((child): child is Node => child !== null).forEach(child => root.appendChild(child))
   return root.innerHTML
 }
-
-watch(post, value => {
-  readerHtml.value = value?.contentHtml ? sanitizeStoryHtml(value.contentHtml) : ''
-}, { immediate: true })
 
 async function shareCurrent() {
   const url = isEvent.value ? (event.value?.url || destinationUrl.value) : (post.value?.url || destinationUrl.value)
