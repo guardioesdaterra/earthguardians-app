@@ -417,7 +417,7 @@ def check_onboarding_photo_layouts(
             "iOS third-slide photo band must compose three locally bundled images asymmetrically")
 
     android_progress = source_section(
-        android, "slides.forEachIndexed { index, _ ->", "\n            Row(\n                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)", "Android clickable progress indicators")
+        android, "slides.forEachIndexed { index, _ ->", "\n/** Exposed for tests", "Android clickable progress indicators")
     ios_progress = source_section(
         ios, "HStack(spacing: 2) {", "\n            .padding(.vertical, 8)", "iOS clickable progress indicators")
     target_dp = layout["progress_hit_area_dp"]
