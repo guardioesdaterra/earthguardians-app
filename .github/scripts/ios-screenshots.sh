@@ -21,15 +21,24 @@ mkdir -p "$SHOTS"
 dump_app_log() { # placed in CI log + artifact; mirrors the Android contract
   local reason="$1"
   echo "[shots][ERROR] $reason" | tee -a "$LOG"
-  echo "[shots][ERROR] — simulator app log (recent errors/crashes):" | tee -a "$LOG"
-  xcrun simctl spawn "$UDID" log show --style compact --last 2m \
-    --predicate 'processPath CONTAINS "EarthGuardians"' 2>&1 \
-    | grep -iE "error|crash|exception|fatal|abort|terminat" \
-    | tail -60 | tee -a "$LOG" || echo "(no matching log lines)"
+  # Unfiltered recent log for OUR process — grep filters once blinded this dump.
+  echo "[shots][ERROR] — simulator log for the app process (recent):" | tee -a "$LOG"
+  xcrun simctl spawn "$UDID" log show --style compact --last 3m \
+    --predicate 'process == "EarthGuardians"' 2>&1 \
+    | grep -viE "AudioSession|MediaRemote|network connection|CoreText" \
+    | tail -100 | tee -a "$LOG" || true
+  # Crash reports land on the HOST for simulator apps — copy any fresh ones.
+  echo "[shots][ERROR] — fresh DiagnosticReports (if any):" | tee -a "$LOG"
+  find ~/Library/Logs/DiagnosticReports -mmin -5 -name "EarthGuardians*" -print -exec sh -c 'echo "== $1"; head -60 "$1"' _ {} \; 2>/dev/null | tee -a "$LOG" || true
 }
 
 alive() { # 0 if the app currently has a running process on the simulator
-  xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q "$PKG"
+  # Simulator app processes are children of the host launchd: pgrep on the
+  # install path is the reliable oracle. launchctl list is a best-effort
+  # secondary (it lists UIKitApplication entries inconsistently).
+  pgrep -f "$SIM_APP/EarthGuardians" >/dev/null 2>&1 && return 0
+  xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q "UIKitApplication:$PKG" \
+    || xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q "$PKG"
 }
 
 echo "[shots] picking an available iPhone simulator…"

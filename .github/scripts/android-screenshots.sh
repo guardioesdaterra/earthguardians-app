@@ -59,8 +59,13 @@ try:
     xml = open("/tmp/eg_dump.xml", encoding="utf-8", errors="ignore").read()
 except OSError:
     sys.exit(0)
+attr_re = re.compile(r'(?:text|content-desc)="([^"]*)"')
 for node in xml.split("<node"):
-    if f'text="{text}"' in node:
+    # Substring match: screens carry whole sentences in one node
+    # ("Every crew gathering, live from the site feed.") and the expectation
+    # is a stable fragment of it. text is the visible string; content-desc is
+    # the a11y label — both legitimate visibility signals.
+    if any(text in v and v for v in attr_re.findall(node)):
         m = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node)
         if m:
             x1, y1, x2, y2 = map(int, m.groups())
