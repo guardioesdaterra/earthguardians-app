@@ -1,0 +1,128 @@
+name: PWA Home visual comparison
+
+on:
+  push:
+    branches: [main, test/app-crossplatform]
+    paths:
+      - 'web/components/**'
+      - 'web/assets/css/**'
+      - 'web/package.json'
+      - 'web/package-lock.json'
+      - 'web/cache/eg_feed_cache.json'
+      - '.github/scripts/capture-pwa-home.mjs'
+      - '.github/scripts/compare-pwa-home.py'
+      - '.github/workflows/pwa-home-visual.yml'
+      - 'tests/fixtures/pwa-home/**'
+      - 'tests/ui-parity/PWA-HOME-VISUAL.md'
+  pull_request:
+    paths:
+      - 'web/components/**'
+      - 'web/assets/css/**'
+      - 'web/package.json'
+      - 'web/package-lock.json'
+      - 'web/cache/eg_feed_cache.json'
+      - '.github/scripts/capture-pwa-home.mjs'
+      - '.github/scripts/compare-pwa-home.py'
+      - '.github/workflows/pwa-home-visual.yml'
+      - 'tests/fixtures/pwa-home/**'
+      - 'tests/ui-parity/PWA-HOME-VISUAL.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pwa-home-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pwa-home-gate:
+    name: Check whether PWA parity is integrated
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.detect.outputs.enabled }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Require the integrated PWA Home implementation
+        id: detect
+        shell: bash
+        run: |
+          if [[ -f web/components/HomePage.vue \
+             && -f web/assets/css/main.css \
+             && -f web/package-lock.json \
+             && -f web/cache/eg_feed_cache.json ]]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+            echo 'PWA Home implementation is present; visual comparison is enabled.'
+          else
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+            echo 'PWA Home implementation is not integrated; visual comparison is skipped.'
+          fi
+
+  pwa-home-visual:
+    name: Compare PWA Home to Android reference
+    needs: pwa-home-gate
+    if: needs.pwa-home-gate.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install PWA dependencies
+        run: npm ci --prefix web
+
+      - name: Substitute the deterministic CI feed
+        run: cp tests/fixtures/pwa-home/feed.json web/cache/eg_feed_cache.json
+
+      - name: Generate the static PWA
+        run: npm run generate --prefix web
+
+      - name: Install pinned Playwright and Chromium
+        run: |
+          npm install --prefix web --no-save --no-package-lock playwright@1.52.0
+          web/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Install image-metric dependencies
+        run: |
+          python3 -m pip install --user --quiet pillow numpy \
+            || python3 -m pip install --break-system-packages --user --quiet pillow numpy
+
+      - name: Capture and compare the Home content viewport
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory web/.output/public \
+            > /tmp/pwa-home-preview.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=''
+          for _ in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:4173/ >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ -z "$ready" ]]; then
+            cat /tmp/pwa-home-preview.log
+            echo 'PWA static server did not become ready.' >&2
+            exit 1
+          fi
+          node .github/scripts/capture-pwa-home.mjs
+          python3 .github/scripts/compare-pwa-home.py
+
+      - name: Upload screenshot comparison artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwa-home-android-visual-comparison
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
