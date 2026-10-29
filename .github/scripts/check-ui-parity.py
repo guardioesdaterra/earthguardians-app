@@ -634,8 +634,9 @@ def check_native_maps(matrix: dict) -> None:
     ios_grants = source_section(
         ios_maps, "private struct ProjectGrantsMapScreen", "// MARK: - Shared map UI",
         "iOS project grants map")
-    for token in ("MapAnnotation", "selectedGrant = grant", "if let selectedGrant",
-                  "detailCard(title: selectedGrant.project_title"):
+    for token in ("SatelliteMapView(", "items: filteredGrants", "onSelect: { grant in",
+                  "selectedGrant = grant", "if let selectedGrant", "projectDetailCard(selectedGrant)",
+                  "detailCard(title: project.project_title"):
         require(token in ios_grants, f"iOS project grant marker selection/detail contract is missing: {token}")
     for token in (
         'detailCard(title: item.region',
