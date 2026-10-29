@@ -288,6 +288,8 @@ def check_onboarding_photo_layouts(
     onboarding = matrix["onboarding"]
     layout = onboarding["photo_layouts"]
     images_by_key = {image["key"]: image for image in matrix["official_images"]}
+    android_slides = source_section(
+        android, "private val slides = listOf(", "\nprivate val onboardingGridImages", "Android onboarding slide list")
     grid_keys = onboarding["photo_grid_images"]
     expected_catalog_order = [image["key"] for image in matrix["official_images"]]
     require(grid_keys == expected_catalog_order,
@@ -333,6 +335,9 @@ def check_onboarding_photo_layouts(
     asymmetric_slide = layout["asymmetric_band_slide"]
     require([grid_slide, full_bleed_slide, asymmetric_slide] == [0, 1, 2],
             "photo treatments must remain mapped to the first three onboarding slides")
+    android_slide_symbols = re.findall(r"\bimageRes\s*=\s*OfficialSiteImages\.([A-Z_]+)", android_slides)
+    require(len(android_slide_symbols) > asymmetric_slide and android_slide_symbols[asymmetric_slide] == "FIELDWORK",
+            "Android slide 2 must bind FIELDWORK in the onboarding slide list")
 
     backdrop_grid = layout["backdrop_grid"]
     rows, columns = backdrop_grid["rows"], backdrop_grid["columns"]
@@ -390,10 +395,10 @@ def check_onboarding_photo_layouts(
 
     require(f"{asymmetric_slide} -> OnboardingOffsetArtwork(slide = slide)" in android_artwork and
             len(re.findall(r"\bImage\s*\(", android_offset)) == layout["asymmetric_photo_count"] and
-            all(f"painterResource(OfficialSiteImages.{symbol})" in android_offset for symbol in (
-                images_by_key[onboarding["slide_images"][asymmetric_slide]]["android_symbol"],
-                images_by_key["youth_gathering"]["android_symbol"],
-                images_by_key["leaves"]["android_symbol"],
+            all(source in android_offset for source in (
+                "painterResource(slide.imageRes)",
+                "painterResource(OfficialSiteImages.YOUTH_GATHERING)",
+                "painterResource(OfficialSiteImages.LEAVES)",
             )) and
             all(anchor in android_offset for anchor in ("Alignment.BottomStart", "Alignment.TopEnd", "Alignment.BottomEnd")) and
             ".fillMaxWidth(0.72f)" in android_offset and ".fillMaxWidth(0.48f)" in android_offset and
