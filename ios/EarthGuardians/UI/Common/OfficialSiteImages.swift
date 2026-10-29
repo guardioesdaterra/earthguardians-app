@@ -1,3 +1,5 @@
+import Foundation
+
 /// Owner-approved photographs bundled from the official Earth Guardians homepage.
 enum OfficialSiteImages {
     static let community = "EGHomeCommunity"
