@@ -646,7 +646,7 @@ def check_native_maps(matrix: dict) -> None:
         'detailRow("Region"',
         'detailRow("Direct beneficiaries"',
         'detailRow("Indirect beneficiaries"',
-        "selectedGrant.country_province",
+        "subtitle: project.country_province",
     ):
         require(token in ios_maps, f"iOS map detail panel is missing field: {token}")
 
