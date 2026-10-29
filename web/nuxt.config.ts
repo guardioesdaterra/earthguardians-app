@@ -52,7 +52,9 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   nitro: {
     prerender: {
-      crawlLinks: true,
+      // All app pages are listed below; crawling query links can treat nested
+      // external deep-link URLs as prerender cache keys.
+      crawlLinks: false,
       routes: ['/', '/events', '/stories', '/maps', '/more', '/settings', '/notifications', '/manifest.webmanifest'],
       ignore: ['/api'],
     },
