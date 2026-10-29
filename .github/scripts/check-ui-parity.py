@@ -589,12 +589,14 @@ def check_native_maps(matrix: dict) -> None:
     for token in (
         "selection.value.region",
         "selection.value.activeCrews",
-        "selection.value.name",
-        "selection.value.status",
-        "selection.value.project_title",
-        "selection.value.country_province",
-        "selection.value.direct_beneficiaries",
-        "selection.value.indirect_beneficiaries",
+        "val crew = selection.value",
+        "crew.name",
+        "crew.status",
+        "val grant = selection.value",
+        "grant.project_title",
+        "grant.country_province",
+        "grant.direct_beneficiaries",
+        "grant.indirect_beneficiaries",
     ):
         require(token in android_maps, f"Android map detail panel is missing field: {token}")
 
