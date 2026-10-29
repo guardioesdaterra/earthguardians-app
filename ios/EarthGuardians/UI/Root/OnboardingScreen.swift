@@ -1,15 +1,15 @@
 import SwiftUI
 import UserNotifications
 
-/// The four full-screen onboarding cards (Apple-style pitch, brand palette only).
+/// Four swipeable onboarding steps grounded in the official Earth Guardians homepage.
 private struct OnboardingSlide: Identifiable {
     let id: Int
     let systemImage: String
     let title: String
     let body: String
-    let tone: SlideTone
-
-    enum SlideTone { case red, green, neutral }
+    let feature: String
+    let imageName: String
+    let imageDescription: String
 }
 
 private let slides: [OnboardingSlide] = [
@@ -17,30 +17,38 @@ private let slides: [OnboardingSlide] = [
         id: 0,
         systemImage: "globe.americas.fill",
         title: "Join a global\nclimate community",
-        body: "Earth Guardians is a revolutionary environmental nonprofit run for youth, by youth — education, micro-grants, trainings and crews on six continents.",
-        tone: .red
+        body: "Your network of climate leaders, created for youth by youth.",
+        feature: "Youth-led across six continents",
+        imageName: OfficialSiteImages.community,
+        imageDescription: "Young people and adults gathered outdoors beneath green trees."
     ),
     OnboardingSlide(
         id: 1,
         systemImage: "leaf.fill",
-        title: "Never lose the thread",
-        body: "Fresh stories from the Earth Guardian blog and every crew event, streamed offline-first and ready right at your fingertips.",
-        tone: .green
+        title: "Turn local ideas\ninto action",
+        body: "Explore crews, campaigns, events, and resources led by young people.",
+        feature: "Find or start a crew",
+        imageName: OfficialSiteImages.beninAction,
+        imageDescription: "A youth climate leader speaking through a megaphone from a boat."
     ),
     OnboardingSlide(
         id: 2,
         systemImage: "map.fill",
-        title: "See your world whole",
-        body: "EG-Maps folds crews, campaigns and the endangered species atlas into one living map inside the app.",
-        tone: .green
+        title: "See the impact\nadd up",
+        body: "Discover the stories, partnerships, and projects behind a healthier future.",
+        feature: "Local action · lasting impact",
+        imageName: OfficialSiteImages.fieldwork,
+        imageDescription: "Earth Guardians members forming a circle on a grassy field, seen from above."
     ),
     OnboardingSlide(
         id: 3,
         systemImage: "bell.badge.fill",
-        title: "It starts with one tap",
-        body: "Allow alerts for breaking events, new stories and urgent actions — you can retune it any time in Settings.",
-        tone: .red
-    ),
+        title: "Stay close to\nwhat’s next",
+        body: "Follow new crew events and stories, and choose whether alerts are right for you.",
+        feature: "Choose alerts anytime",
+        imageName: OfficialSiteImages.climateAction,
+        imageDescription: "Young climate activists marching together beneath trees."
+    )
 ]
 
 struct OnboardingScreen: View {
@@ -77,11 +85,10 @@ struct OnboardingScreen: View {
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeOut(duration: 0.25), value: page)
 
-            // Dots — springy iOS pill that stretches and ignites in red
             HStack(spacing: 6) {
                 ForEach(slides) { slide in
                     Capsule()
-                        .fill(slide.id == page ? palette.accent : palette.outline)
+                        .fill(slide.id == page ? palette.eco : palette.outline)
                         .frame(width: slide.id == page ? 22 : 6, height: 6)
                         .animation(.easeOut(duration: 0.22), value: page)
                 }
@@ -90,24 +97,17 @@ struct OnboardingScreen: View {
 
             HStack(spacing: 12) {
                 if isLastPage {
-                    Button {
-                        UIC.feedback()
-                        requestNotificationsIfWanted()
-                        onFinished()
-                    } label: {
-                        Text("Skip")
-                            .font(.system(size: 15))
-                            .foregroundColor(palette.muted)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                    }
-                    .buttonStyle(PressableStyle())
-                    .opacity(0) // reserved space keeps the layout stable
-                    .accessibilityHidden(true)
+                    Text("Skip")
+                        .font(.system(size: 15))
+                        .foregroundColor(palette.muted)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .opacity(0)
+                        .accessibilityHidden(true)
                 } else {
                     Button {
                         UIC.feedback()
-                        withAnimation { page = slides.count - 1 }
+                        onFinished()
                     } label: {
                         Text("Skip")
                             .font(.system(size: 15))
@@ -120,10 +120,7 @@ struct OnboardingScreen: View {
 
                 Spacer()
 
-                EgPrimaryButton(
-                    isLastPage ? "Get started" : (page == 0 ? "Explore" : "Next"),
-                    tone: isLastPage ? .green : .red
-                ) {
+                EgPrimaryButton(isLastPage ? "Get started" : (page == 0 ? "Explore" : "Next"), tone: .green) {
                     UIC.feedback()
                     if isLastPage {
                         requestNotificationsIfWanted()
@@ -137,43 +134,88 @@ struct OnboardingScreen: View {
             .padding(.bottom, 8)
         }
         .padding(24)
-        .background(palette.background.ignoresSafeArea())
-        .overlay(alignment: .topTrailing) { brandGlow.ignoresSafeArea() }
-        .overlay(alignment: .bottomLeading) { ecoGlow.ignoresSafeArea() }
+        .background {
+            ZStack {
+                palette.background.ignoresSafeArea()
+                OfficialSitePhotoCollage(page: page, opacity: 0.075)
+                    .ignoresSafeArea()
+            }
+        }
+        .overlay(alignment: .topTrailing) { canopyGlow.ignoresSafeArea() }
+        .overlay(alignment: .bottomLeading) { earthGlow.ignoresSafeArea() }
     }
 
     // MARK: Slide
 
     @ViewBuilder
     private func slideView(_ slide: OnboardingSlide) -> some View {
-        let accent: Color = {
-            switch slide.tone {
-            case .red: return palette.accent
-            case .green: return palette.eco
-            case .neutral: return palette.onBackground
-            }
-        }()
+        VStack(alignment: .leading, spacing: 14) {
+            ZStack(alignment: .topLeading) {
+                Image(slide.imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 184)
+                    .clipped()
+                    .opacity(0.42)
 
-        VStack(alignment: .leading, spacing: 18) {
-            ZStack {
-                Circle().fill(accent.opacity(0.14))
-                Image(systemName: slide.systemImage)
-                    .font(.system(size: 34))
-                    .foregroundColor(accent)
+                OfficialSitePhotoCollage(page: page, opacity: 0.13)
+
+                LinearGradient(
+                    colors: [.black.opacity(0.24), .clear, .black.opacity(0.66)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                VStack(alignment: .leading) {
+                    HStack(spacing: 7) {
+                        Image(systemName: slide.systemImage)
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("\(page + 1) / \(slides.count) · EARTH GUARDIANS")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(0.7)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 7)
+                    .background(.black.opacity(0.42), in: Capsule())
+                    Spacer()
+                    Text("Photo · earthguardians.org")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.92))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                .padding(14)
             }
-            .frame(width: 84, height: 84)
+            .frame(height: 184)
+            .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(slide.imageDescription)
 
             Text(slide.title)
-                .font(.system(size: 36, weight: .black))
-                .kerning(-0.8)
+                .font(.system(size: 32, weight: .black))
+                .kerning(-0.7)
                 .foregroundColor(palette.onBackground)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(slide.body)
-                .font(.system(size: 17))
-                .lineSpacing(5)
+                .font(.system(size: 16))
+                .lineSpacing(4)
                 .foregroundColor(palette.muted)
                 .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                Image(systemName: slide.systemImage)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(palette.eco)
+                Text(slide.feature)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(palette.onBackground)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(palette.eco.opacity(0.12), in: Capsule())
 
             if slide.id == slides.count - 1 {
                 Toggle(isOn: $notificationsWanted) {
@@ -182,34 +224,32 @@ struct OnboardingScreen: View {
                         .foregroundColor(palette.onBackground)
                 }
                 .toggleStyle(SwitchToggleStyle(tint: palette.eco))
-                .padding(.top, 4)
+                .padding(.top, 2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 24)
+        .padding(.vertical, 12)
     }
 
-    // MARK: Soft brand glows
+    // MARK: Soft green brand light
 
-    private var brandGlow: some View {
+    private var canopyGlow: some View {
         RadialGradient(
-            colors: [palette.accent.opacity(0.18), .clear],
+            colors: [palette.eco.opacity(0.16), .clear],
             center: .topTrailing,
             startRadius: 10,
             endRadius: 340
         )
-        .blendMode(.plusLighter)
         .allowsHitTesting(false)
     }
 
-    private var ecoGlow: some View {
+    private var earthGlow: some View {
         RadialGradient(
-            colors: [palette.eco.opacity(0.14), .clear],
+            colors: [palette.eco.opacity(0.10), .clear],
             center: .bottomLeading,
             startRadius: 10,
             endRadius: 360
         )
-        .blendMode(.plusLighter)
         .allowsHitTesting(false)
     }
 
@@ -217,7 +257,6 @@ struct OnboardingScreen: View {
 
     private func requestNotificationsIfWanted() {
         guard notificationsWanted else { return }
-        let center = UNUserNotificationCenter.current()
-        center.requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
     }
 }
