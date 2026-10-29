@@ -16,6 +16,21 @@ struct EarthGuardiansApp: App {
                 .environmentObject(graph)
                 .onAppear {
                     graph.notifications.ensureCategories()
+
+                    // Cold-launch routing for CI screenshots/tests:
+                    // `simctl launch <udid> <pkg> -eg_launch_route events`
+                    // navigates straight to a screen — without `simctl openurl`,
+                    // which routes custom schemes through Safari and parks the
+                    // 'Open in Earth Guardians' confirmation sheet over every
+                    // capture. Posted async: RootView must attach first
+                    // (egOnChange uses onChange(initial: false)).
+                    if let launchRoute = UserDefaults.standard.string(forKey: "eg_launch_route") {
+                        DispatchQueue.main.async {
+                            if let route = Deeplinks.parseRoute("earthguardians://\(launchRoute)") {
+                                graph.routeBus.post(route)
+                            }
+                        }
+                    }
                     if graph.onboarded == true {
                         BackgroundSync.scheduleNextRefresh()
                     }

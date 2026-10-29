@@ -74,11 +74,20 @@ class NotificationCoordinator(
 
     /** Called by SyncWorker after a successful feed refresh. */
     suspend fun onFeedSynced(feed: EgFeed) {
-        seedFromHistory()
-        val known = seenIds.toSet()
+        val known = prefs.feedSeen.first()
+
+        // Fresh install or first-ever sync: baseline the ENTIRE current catalog
+        // silently. This is the flood guard — a 3-year-old backlog of stories
+        // must never reach the user as "new" notifications.
+        if (known.isEmpty()) {
+            prefs.saveFeedSeen(feed.events.map { it.url } + feed.posts.map { it.url })
+            seedFromHistory()
+            return
+        }
 
         val newEvents = feed.events.filter { it.url !in known }.take(2)
         val newStories = feed.posts.filter { it.url !in known }.take(3)
+        if (newEvents.isEmpty() && newStories.isEmpty()) return
 
         newEvents.forEach { post ->
             push(
@@ -96,6 +105,14 @@ class NotificationCoordinator(
                 channel = Channel.STORIES,
             )
         }
+
+        // Account for everything currently visible — not just the 2+3 just
+        // notified — so the next sync never re-drips the remaining backlog.
+        prefs.saveFeedSeen(
+            feed.events.map { it.url } +
+                feed.posts.map { it.url } +
+                known,
+        )
     }
 
     suspend fun sendTestNotification() {
@@ -147,9 +164,12 @@ class NotificationCoordinator(
         // POST_NOTIFICATIONS is a runtime permission; silent no-op when not granted.
         runCatching { notifications.notify(record.id.hashCode(), builder.build()) }
 
-        // Mirror into the in-app Notification Center.
+        // Mirror into the in-app Notification Center — ids de-duplicated so a
+        // re-push of the same route updates the row instead of stacking rows.
         val existing = prefs.notifications.first()
-        prefs.saveNotifications(listOf(record) + existing.take(29))
+        prefs.saveNotifications(
+            (listOf(record) + existing).distinctBy { it.id }.take(30),
+        )
     }
 
     val history: Flow<List<StoredNotification>> = prefs.notifications

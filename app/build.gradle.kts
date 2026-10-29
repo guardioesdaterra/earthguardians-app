@@ -31,6 +31,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // CI-distributed release must install on devices. Play-signing is
+            // provisioned later; until then the debug keystore (generated in
+            // CI before Gradle runs) makes the artifact sideloadable.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

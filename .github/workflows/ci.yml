@@ -55,10 +55,18 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0" > /dev/null
 
-      - name: Compile debug + release (unsigned)
+      - name: Compile debug + release (debug-signed)
         # bundleRelease is required for the AAB artifact below — assembleRelease
-        # produces APKs only.
-        run: gradle --stacktrace :app:assembleDebug :app:assembleRelease :app:bundleRelease
+        # produces APKs only. The debug keystore is generated up front so the
+        # release signingConfig (signingConfigs.getByName("debug")) always has
+        # a store: unsigned release APKs cannot install on devices at all.
+        run: |
+          mkdir -p ~/.android
+          [ -f ~/.android/debug.keystore ] || keytool -genkeypair \
+            -keystore ~/.android/debug.keystore -storepass android \
+            -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          gradle --stacktrace :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
       - name: Unit tests (parsers, catalog, navigation, theme logic)
         run: gradle --stacktrace :app:testDebugUnitTest
