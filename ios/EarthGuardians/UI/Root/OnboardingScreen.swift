@@ -54,7 +54,6 @@ private let slides: [OnboardingSlide] = [
 struct OnboardingScreen: View {
     @Environment(\.egPalette) private var palette
     private let onFinished: () -> Void
-
     @State private var page = 0
     @State private var notificationsWanted = true
 
@@ -85,15 +84,26 @@ struct OnboardingScreen: View {
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeOut(duration: 0.25), value: page)
 
-            HStack(spacing: 6) {
+            HStack(spacing: 2) {
                 ForEach(slides) { slide in
-                    Capsule()
-                        .fill(slide.id == page ? palette.eco : palette.outline)
-                        .frame(width: slide.id == page ? 22 : 6, height: 6)
-                        .animation(.easeOut(duration: 0.22), value: page)
+                    let active = slide.id == page
+                    Button {
+                        UIC.feedback()
+                        withAnimation(.easeOut(duration: 0.25)) { page = slide.id }
+                    } label: {
+                        Capsule()
+                            .fill(active ? palette.eco : palette.outline)
+                            .frame(width: active ? 22 : 6, height: 6)
+                            .frame(width: 36, height: 36)
+                            .contentShape(Circle())
+                            .animation(.easeOut(duration: 0.22), value: page)
+                    }
+                    .buttonStyle(PressableStyle())
+                    .accessibilityLabel("Step \(slide.id + 1) of \(slides.count)")
+                    .accessibilityValue(active ? "Current" : "Not selected")
                 }
             }
-            .padding(.vertical, 16)
+            .padding(.vertical, 8)
 
             HStack(spacing: 12) {
                 if isLastPage {
@@ -117,9 +127,7 @@ struct OnboardingScreen: View {
                     }
                     .buttonStyle(PressableStyle())
                 }
-
                 Spacer()
-
                 EgPrimaryButton(isLastPage ? "Get started" : (page == 0 ? "Explore" : "Next"), tone: .green) {
                     UIC.feedback()
                     if isLastPage {
@@ -134,76 +142,41 @@ struct OnboardingScreen: View {
             .padding(.bottom, 8)
         }
         .padding(24)
-        .background {
-            ZStack {
-                palette.background.ignoresSafeArea()
-                OfficialSitePhotoCollage(page: page, opacity: 0.075)
-                    .ignoresSafeArea()
-            }
-        }
+        .background { onboardingBackdrop }
         .overlay(alignment: .topTrailing) { canopyGlow.ignoresSafeArea() }
         .overlay(alignment: .bottomLeading) { earthGlow.ignoresSafeArea() }
     }
 
-    // MARK: Slide
-
     @ViewBuilder
     private func slideView(_ slide: OnboardingSlide) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            ZStack(alignment: .topLeading) {
-                Image(slide.imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 184)
-                    .clipped()
-                    .opacity(0.42)
-
-                OfficialSitePhotoCollage(page: page, opacity: 0.13)
-
-                LinearGradient(
-                    colors: [.black.opacity(0.24), .clear, .black.opacity(0.66)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                VStack(alignment: .leading) {
-                    HStack(spacing: 7) {
-                        Image(systemName: slide.systemImage)
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("\(page + 1) / \(slides.count) · EARTH GUARDIANS")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(0.7)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 7)
-                    .background(.black.opacity(0.42), in: Capsule())
-                    Spacer()
-                    Text("Photo · earthguardians.org")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.92))
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+            if slide.id == 1 {
+                HStack(spacing: 7) {
+                    Image(systemName: slide.systemImage)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(palette.eco)
+                    Text("FULL-BLEED PHOTO · EARTH GUARDIANS")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(0.5)
+                        .foregroundColor(palette.onBackground)
                 }
-                .padding(14)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(palette.glass.opacity(0.82), in: Capsule())
+            } else {
+                slideArtwork(slide)
             }
-            .frame(height: 184)
-            .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(slide.imageDescription)
 
             Text(slide.title)
                 .font(.system(size: 32, weight: .black))
                 .kerning(-0.7)
                 .foregroundColor(palette.onBackground)
                 .fixedSize(horizontal: false, vertical: true)
-
             Text(slide.body)
                 .font(.system(size: 16))
                 .lineSpacing(4)
                 .foregroundColor(palette.muted)
                 .fixedSize(horizontal: false, vertical: true)
-
             HStack(spacing: 8) {
                 Image(systemName: slide.systemImage)
                     .font(.system(size: 14, weight: .semibold))
@@ -231,7 +204,195 @@ struct OnboardingScreen: View {
         .padding(.vertical, 12)
     }
 
-    // MARK: Soft green brand light
+    @ViewBuilder
+    private func slideArtwork(_ slide: OnboardingSlide) -> some View {
+        switch slide.id {
+        case 0:
+            gridArtwork(slide)
+        case 2:
+            offsetArtwork(slide)
+        default:
+            standardArtwork(slide)
+        }
+    }
+
+    private func gridArtwork(_ slide: OnboardingSlide) -> some View {
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: 3) {
+                ForEach(0..<2, id: \.self) { row in
+                    HStack(spacing: 3) {
+                        ForEach(0..<2, id: \.self) { column in
+                            let index = (row * 2 + column) % OfficialSiteImages.collage.count
+                            Image(OfficialSiteImages.collage[index])
+                                .resizable()
+                                .scaledToFill()
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 90)
+                                .clipped()
+                        }
+                    }
+                }
+            }
+            LinearGradient(
+                colors: [.black.opacity(0.08), .clear, .black.opacity(0.52)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            VStack {
+                HStack {
+                    Text("A GLOBAL COMMUNITY · 1 / \(slides.count)")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(0.6)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(.black.opacity(0.42), in: Capsule())
+                    Spacer()
+                }
+                Spacer()
+                HStack {
+                    Spacer()
+                    photoCredit
+                }
+            }
+            .padding(13)
+        }
+        .frame(height: 184)
+        .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(slide.imageDescription)
+    }
+
+    private func standardArtwork(_ slide: OnboardingSlide) -> some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .topLeading) {
+                Image(slide.imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
+                LinearGradient(
+                    colors: [.black.opacity(0.12), .clear, .black.opacity(0.58)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                VStack {
+                    HStack(spacing: 7) {
+                        Image(systemName: slide.systemImage)
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("\(slide.id + 1) / \(slides.count) · EARTH GUARDIANS")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(0.7)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 7)
+                    .background(.black.opacity(0.42), in: Capsule())
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        photoCredit
+                    }
+                }
+                .padding(14)
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+        .frame(height: 184)
+        .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(slide.imageDescription)
+    }
+
+    private func offsetArtwork(_ slide: OnboardingSlide) -> some View {
+        GeometryReader { geometry in
+            ZStack {
+                Image(slide.imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geometry.size.width * 0.72, height: 154)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .position(x: geometry.size.width * 0.37, y: geometry.size.height * 0.54)
+                Image(OfficialSiteImages.youthGathering)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geometry.size.width * 0.44, height: 104)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .rotationEffect(.degrees(3))
+                    .position(x: geometry.size.width * 0.77, y: 61)
+                Image(OfficialSiteImages.leaves)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 92, height: 68)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .rotationEffect(.degrees(-4))
+                    .position(x: geometry.size.width - 56, y: geometry.size.height - 42)
+                VStack {
+                    HStack {
+                        Text("FIELD NOTES")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(0.8)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.black.opacity(0.52), in: Capsule())
+                        Spacer()
+                    }
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        photoCredit
+                    }
+                }
+                .padding(13)
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
+        }
+        .frame(height: 184)
+        .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(slide.imageDescription)
+    }
+
+    private var photoCredit: some View {
+        Text("Photo · earthguardians.org")
+            .font(.system(size: 10))
+            .foregroundColor(.white.opacity(0.94))
+    }
+
+    @ViewBuilder
+    private var onboardingBackdrop: some View {
+        ZStack {
+            palette.background.ignoresSafeArea()
+            switch page {
+            case 0:
+                OfficialSitePhotoGrid(opacity: 0.28)
+                    .overlay(palette.background.opacity(0.54))
+                    .ignoresSafeArea()
+            case 1:
+                GeometryReader { geometry in
+                    Image(slides[1].imageName)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                        .opacity(0.65)
+                    LinearGradient(
+                        colors: [palette.background.opacity(0.62), palette.background.opacity(0.82)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
+                .ignoresSafeArea()
+            default:
+                OfficialSitePhotoCollage(page: page, opacity: 0.10)
+                    .overlay(palette.background.opacity(0.48))
+                    .ignoresSafeArea()
+            }
+        }
+        .animation(.easeInOut(duration: 0.32), value: page)
+    }
 
     private var canopyGlow: some View {
         RadialGradient(
@@ -252,8 +413,6 @@ struct OnboardingScreen: View {
         )
         .allowsHitTesting(false)
     }
-
-    // MARK: Permissions
 
     private func requestNotificationsIfWanted() {
         guard notificationsWanted else { return }

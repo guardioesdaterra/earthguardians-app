@@ -1,6 +1,42 @@
 import SwiftUI
 
 /// Reuses owner-approved homepage photos as a subtle, decorative background.
+struct OfficialSitePhotoGrid: View {
+    var opacity: Double = 0.16
+
+    private let rows = 5
+    private let columns = 3
+    private let spacing: CGFloat = 6
+
+    var body: some View {
+        GeometryReader { geometry in
+            let tileWidth = (geometry.size.width - spacing * CGFloat(columns - 1)) / CGFloat(columns)
+            let tileHeight = (geometry.size.height - spacing * CGFloat(rows - 1)) / CGFloat(rows)
+
+            VStack(spacing: spacing) {
+                ForEach(0..<rows, id: \.self) { row in
+                    HStack(spacing: spacing) {
+                        ForEach(0..<columns, id: \.self) { column in
+                            let index = (row * columns + column) % OfficialSiteImages.collage.count
+                            Image(OfficialSiteImages.collage[index])
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: tileWidth, height: tileHeight)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .rotationEffect(.degrees((row + column).isMultiple(of: 2) ? -1.5 : 1.5))
+                                .opacity(opacity)
+                        }
+                    }
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 struct OfficialSitePhotoCollage: View {
     let page: Int
     var opacity: Double = 0.075

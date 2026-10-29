@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -13,9 +14,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,8 +51,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -57,6 +58,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -115,6 +121,15 @@ private val slides = listOf(
     ),
 )
 
+private val onboardingGridImages = listOf(
+    OfficialSiteImages.COMMUNITY,
+    OfficialSiteImages.BENIN_ACTION,
+    OfficialSiteImages.LEAVES,
+    OfficialSiteImages.FIELDWORK,
+    OfficialSiteImages.YOUTH_GATHERING,
+    OfficialSiteImages.CLIMATE_ACTION,
+)
+
 @Composable
 internal fun OnboardingScreen(
     graph: AppGraph,
@@ -124,12 +139,9 @@ internal fun OnboardingScreen(
     val pagerState = rememberPagerState(pageCount = { slides.size })
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-
-    val isLastPage by remember {
-        derivedStateOf { pagerState.currentPage == slides.lastIndex }
-    }
+    val currentPage by remember { derivedStateOf { pagerState.currentPage } }
+    val isLastPage by remember { derivedStateOf { currentPage == slides.lastIndex } }
     var notificationsWanted by remember { mutableStateOf(true) }
-
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { }
@@ -148,38 +160,17 @@ internal fun OnboardingScreen(
             .fillMaxSize()
             .background(palette.background),
     ) {
-        OfficialSitePhotoCollage(
-            page = pagerState.currentPage,
-            modifier = Modifier.fillMaxSize(),
-            opacity = 0.075f,
-        )
+        OnboardingBackdrop(page = currentPage)
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .drawBehind {
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(palette.eco.copy(alpha = 0.16f), Color.Transparent),
-                            center = Offset(size.width * 0.92f, size.height * 0.08f),
-                            radius = size.width * 0.72f,
-                        ),
-                        radius = size.width * 0.72f,
-                        center = Offset(size.width * 0.92f, size.height * 0.08f),
-                    )
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(palette.eco.copy(alpha = 0.10f), Color.Transparent),
-                            center = Offset(size.width * 0.08f, size.height * 0.98f),
-                            radius = size.width * 0.78f,
-                        ),
-                        radius = size.width * 0.78f,
-                        center = Offset(size.width * 0.08f, size.height * 0.98f),
-                    )
-                }
                 .statusBarsPadding()
                 .padding(horizontal = 24.dp),
         ) {
-            Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     text = "EARTH GUARDIANS",
                     color = palette.onBackground,
@@ -204,62 +195,7 @@ internal fun OnboardingScreen(
                         .padding(vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(184.dp)
-                            .clip(RoundedCornerShape(EgRadius.card)),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Brush.linearGradient(listOf(palette.eco.copy(alpha = 0.42f), palette.glass))),
-                        )
-                        Image(
-                            painter = painterResource(slide.imageRes),
-                            contentDescription = slide.imageDescription,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer { alpha = 0.42f },
-                        )
-                        OfficialSitePhotoCollage(page = page, modifier = Modifier.fillMaxSize(), opacity = 0.13f)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(Color.Black.copy(alpha = 0.22f), Color.Transparent, Color.Black.copy(alpha = 0.66f)),
-                                    ),
-                                ),
-                        )
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(14.dp)
-                                .clip(RoundedCornerShape(EgRadius.pill))
-                                .background(Color.Black.copy(alpha = 0.42f))
-                                .padding(horizontal = 11.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(7.dp),
-                        ) {
-                            Icon(slide.icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
-                            Text(
-                                text = "${page + 1} / ${slides.size} · EARTH GUARDIANS",
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                letterSpacing = 0.7.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                        Text(
-                            text = "Photo · earthguardians.org",
-                            color = Color.White.copy(alpha = 0.92f),
-                            fontSize = 10.sp,
-                            modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
-                        )
-                    }
-
+                    OnboardingArtwork(page = page, slide = slide)
                     Text(
                         text = slide.title,
                         color = palette.onBackground,
@@ -310,32 +246,51 @@ internal fun OnboardingScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                repeat(slides.size) { index ->
-                    val active = pagerState.currentPage == index
+                slides.forEachIndexed { index, _ ->
+                    val active = currentPage == index
                     val dotWidth by animateDpAsState(
                         targetValue = if (active) 22.dp else 6.dp,
                         animationSpec = tween(220),
-                        label = "onboardingDotWidth",
+                        label = "onboardingDotWidth$index",
                     )
                     val dotColor by animateColorAsState(
                         targetValue = if (active) palette.eco else palette.outline,
                         animationSpec = tween(220),
-                        label = "onboardingDotColor",
+                        label = "onboardingDotColor$index",
                     )
                     Box(
                         modifier = Modifier
-                            .size(width = dotWidth, height = 6.dp)
+                            .width(36.dp)
+                            .height(36.dp)
                             .clip(CircleShape)
-                            .background(dotColor, CircleShape),
-                    )
+                            .clickable {
+                                scope.launch { pagerState.animateScrollToPage(index) }
+                            }
+                            .semantics {
+                                contentDescription = "Page ${index + 1} of ${slides.size}"
+                                selected = active
+                                role = Role.Tab
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(width = dotWidth, height = 6.dp)
+                                .clip(CircleShape)
+                                .background(dotColor),
+                        )
+                    }
                 }
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -348,13 +303,16 @@ internal fun OnboardingScreen(
                         fontSize = 15.sp,
                         modifier = Modifier
                             .clip(RoundedCornerShape(EgRadius.pill))
-                            .clickable { onFinished() }
+                            .clickable {
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onFinished()
+                            }
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                     )
                 }
                 Spacer(Modifier.weight(1f))
                 EgPrimaryButton(
-                    label = if (isLastPage) "Get started" else if (pagerState.currentPage == 0) "Explore" else "Next",
+                    label = if (isLastPage) "Get started" else if (currentPage == 0) "Explore" else "Next",
                     tone = PillTone.Green,
                     onClick = {
                         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -363,7 +321,7 @@ internal fun OnboardingScreen(
                             onFinished()
                         } else {
                             scope.launch {
-                                runCatching { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                                runCatching { pagerState.animateScrollToPage(currentPage + 1) }
                             }
                         }
                     },
@@ -371,6 +329,260 @@ internal fun OnboardingScreen(
             }
         }
     }
+}
+
+@Composable
+private fun OnboardingBackdrop(page: Int) {
+    val palette = LocalEGPalette.current
+    Crossfade(
+        targetState = page,
+        animationSpec = tween(320),
+        label = "onboardingBackdrop",
+    ) { backgroundPage ->
+        Box(modifier = Modifier.fillMaxSize().background(palette.background)) {
+            when (backgroundPage) {
+                0 -> OnboardingPhotoGrid(modifier = Modifier.fillMaxSize(), opacity = 0.28f)
+                1 -> Image(
+                    painter = painterResource(OfficialSiteImages.BENIN_ACTION),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 0.65f },
+                )
+                else -> OfficialSitePhotoCollage(
+                    page = backgroundPage,
+                    modifier = Modifier.fillMaxSize(),
+                    opacity = 0.10f,
+                )
+            }
+            val topScrim = when (backgroundPage) {
+                0 -> 0.55f
+                1 -> 0.62f
+                else -> 0.48f
+            }
+            val bottomScrim = if (backgroundPage == 1) 0.82f else topScrim
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                palette.background.copy(alpha = topScrim),
+                                palette.background.copy(alpha = bottomScrim),
+                            ),
+                        ),
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun OnboardingPhotoGrid(
+    modifier: Modifier,
+    opacity: Float,
+) {
+    Column(
+        modifier = modifier.padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        repeat(5) { row ->
+            Row(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                repeat(3) { column ->
+                    val imageIndex = (row * 3 + column) % onboardingGridImages.size
+                    Image(
+                        painter = painterResource(onboardingGridImages[imageIndex]),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(18.dp))
+                            .graphicsLayer {
+                                alpha = opacity
+                                rotationZ = if ((row + column) % 2 == 0) -1.5f else 1.5f
+                            },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnboardingArtwork(
+    page: Int,
+    slide: OnboardingSlide,
+) {
+    val palette = LocalEGPalette.current
+    if (page == 1) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(EgRadius.pill))
+                .background(palette.glass.copy(alpha = 0.82f))
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Icon(slide.icon, contentDescription = null, tint = palette.eco, modifier = Modifier.size(15.dp))
+            Text("FULL-BLEED PHOTO · EARTH GUARDIANS", color = palette.onBackground, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+        }
+        return
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(184.dp)
+            .clip(RoundedCornerShape(EgRadius.card))
+            .background(palette.glass)
+            .semantics { contentDescription = slide.imageDescription },
+    ) {
+        when (page) {
+            0 -> OnboardingGridArtwork()
+            2 -> OnboardingOffsetArtwork(slide = slide)
+            else -> {
+                Image(
+                    painter = painterResource(slide.imageRes),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Black.copy(alpha = 0.12f), Color.Transparent, Color.Black.copy(alpha = 0.52f)),
+                            ),
+                        ),
+                )
+                Text(
+                    text = "Photo · earthguardians.org",
+                    color = Color.White.copy(alpha = 0.94f),
+                    fontSize = 10.sp,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.OnboardingGridArtwork() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(3.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        repeat(2) { row ->
+            Row(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                repeat(2) { column ->
+                    val imageIndex = row * 2 + column
+                    Image(
+                        painter = painterResource(onboardingGridImages[imageIndex]),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(18.dp))
+                            .graphicsLayer { alpha = 0.76f },
+                    )
+                }
+            }
+        }
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.Black.copy(alpha = 0.08f), Color.Transparent, Color.Black.copy(alpha = 0.52f)),
+                ),
+            ),
+    )
+    Text(
+        text = "A GLOBAL COMMUNITY · 1 / ${slides.size}",
+        color = Color.White,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.6.sp,
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(13.dp)
+            .clip(RoundedCornerShape(EgRadius.pill))
+            .background(Color.Black.copy(alpha = 0.42f))
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+    )
+    Text(
+        text = "Photos · earthguardians.org",
+        color = Color.White.copy(alpha = 0.94f),
+        fontSize = 10.sp,
+        modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
+    )
+}
+
+@Composable
+private fun BoxScope.OnboardingOffsetArtwork(slide: OnboardingSlide) {
+    Image(
+        painter = painterResource(slide.imageRes),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .align(Alignment.BottomStart)
+            .padding(start = 8.dp, bottom = 7.dp)
+            .fillMaxWidth(0.72f)
+            .height(154.dp)
+            .clip(RoundedCornerShape(22.dp)),
+    )
+    Image(
+        painter = painterResource(OfficialSiteImages.YOUTH_GATHERING),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .padding(top = 10.dp, end = 9.dp)
+            .fillMaxWidth(0.48f)
+            .height(106.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .graphicsLayer { rotationZ = 3f },
+    )
+    Image(
+        painter = painterResource(OfficialSiteImages.LEAVES),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(end = 11.dp, bottom = 8.dp)
+            .width(92.dp)
+            .height(68.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .graphicsLayer { rotationZ = -4f },
+    )
+    Text(
+        text = "FIELD NOTES",
+        color = Color.White,
+        fontSize = 9.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.8.sp,
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(14.dp)
+            .clip(RoundedCornerShape(EgRadius.pill))
+            .background(Color.Black.copy(alpha = 0.52f))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    )
+    Text(
+        text = "Photo · earthguardians.org",
+        color = Color.White.copy(alpha = 0.84f),
+        fontSize = 9.sp,
+        modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 2.dp),
+    )
 }
 
 /** Exposed for tests — what the four onboarding slides promise. */
