@@ -55,6 +55,23 @@ final class DeeplinksTests: XCTestCase {
         )
     }
 
+    func testNestedQueryAndFragmentSurvivePageArgumentRouting() throws {
+        let pageURL = "https://www.earthguardians.org/programs/youth%20climate?source=app&topic=climate+justice#join"
+        let cases = [("section", "u"), ("post", "u"), ("event", "e")]
+
+        for (target, key) in cases {
+            let marker = "\(target)?\(key)="
+            let expectedRoute = marker + Deeplinks.encode(pageURL)
+            let rawRoute = try XCTUnwrap(Deeplinks.parseRoute("earthguardians://\(target)?source=share&\(key)=\(pageURL)"))
+            XCTAssertEqual(rawRoute, expectedRoute)
+            XCTAssertEqual(Deeplinks.decode(String(rawRoute.dropFirst(marker.count))), pageURL)
+
+            let encodedRoute = try XCTUnwrap(Deeplinks.parseRoute("earthguardians://\(target)?\(key)=\(Deeplinks.encode(pageURL))"))
+            XCTAssertEqual(encodedRoute, expectedRoute)
+            XCTAssertEqual(Deeplinks.decode(String(encodedRoute.dropFirst(marker.count))), pageURL)
+        }
+    }
+
     func testSiteLinksBecomeSections() {
         XCTAssertEqual(
             Deeplinks.parseRoute("https://www.earthguardians.org/stmp"),

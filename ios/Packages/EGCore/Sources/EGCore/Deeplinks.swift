@@ -39,13 +39,23 @@ public enum Deeplinks {
 
             func route(argumentKey key: String) -> String? {
                 guard !query.isEmpty else { return nil }
-                guard let raw = query.split(separator: "&")
-                    .first(where: { $0.hasPrefix("\(key)=") })
-                    .map({ String($0.dropFirst("\(key)=".count)) })
-                else { return nil }
-                // Incoming values may already be percent-encoded — decode first so
-                // we never double-encode. For raw values this is an identity round-trip.
-                let normalized = Deeplinks.encode(Deeplinks.decode(raw))
+                let marker = "\(key)="
+                let keyStarts = [query.startIndex] + query.indices
+                    .filter { query[$0] == "&" }
+                    .map { query.index(after: $0) }
+                guard let start = keyStarts.first(where: { query[$0...].hasPrefix(marker) }) else {
+                    return nil
+                }
+                // There is one page URL argument. Keep its nested '&' query and
+                // '#fragment' intact by treating everything after the key as value.
+                let valueStart = query.index(start, offsetBy: marker.count)
+                let raw = String(query[valueStart...])
+                let lower = raw.lowercased()
+                let isFullyEncodedWebURL = lower.hasPrefix("http%3a%2f%2f") || lower.hasPrefix("https%3a%2f%2f")
+                // A raw URL can contain %20 and literal '+'. Leave it untouched;
+                // only decode a fully escaped URL supplied by an existing shortcut.
+                let value = isFullyEncodedWebURL ? Deeplinks.decode(raw) : raw
+                let normalized = Deeplinks.encode(value)
                 return "\(path)?\(key)=\(normalized)"
             }
 

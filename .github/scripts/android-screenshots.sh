@@ -159,7 +159,8 @@ declare -a SCREENS=(
   "03-stories|earthguardians://stories|Shared on the blog"
   "04-maps|earthguardians://maps|EG-Maps"
   "05-more|earthguardians://more|More"
-  "06-section-donate|earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate|Donate"
+  "06-section-nested-query|earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate%3Fsource%3Dci%26campaign%3Ddeeplink%23ci-anchor|Donate"
+  "07-bare-root-host|https://earthguardians.org|"
 )
 
 FAILURES=0

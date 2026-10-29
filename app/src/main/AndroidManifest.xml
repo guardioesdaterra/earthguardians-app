@@ -42,17 +42,15 @@
                 <data android:scheme="earthguardians" />
             </intent-filter>
 
-            <!-- https://www.earthguardians.org/* app links (asset links can be published later for autoVerify) -->
+            <!-- Official host-only filter intentionally has no path constraint; bare-host URLs have an empty path. -->
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https"
-                    android:host="www.earthguardians.org"
-                    android:pathPrefix="/" />
+                    android:host="www.earthguardians.org" />
                 <data android:scheme="https"
-                    android:host="earthguardians.org"
-                    android:pathPrefix="/" />
+                    android:host="earthguardians.org" />
             </intent-filter>
         </activity>
 

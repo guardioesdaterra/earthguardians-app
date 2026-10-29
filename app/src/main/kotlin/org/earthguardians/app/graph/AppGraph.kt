@@ -42,9 +42,9 @@ object Deeplinks {
             val path = noQuery.substringBefore('/')
             return when {
                 path in NAV_TABS -> path
-                path == "event" && query.isNotBlank() -> "event?e=${query.encodeComponent("e")}"
-                path == "post" && query.isNotBlank() -> "post?u=${query.encodeComponent("u")}"
-                path == "section" && query.isNotBlank() -> "section?u=${query.encodeComponent("u")}"
+                path == "event" -> query.encodeComponent("e")?.let { "event?e=$it" }
+                path == "post" -> query.encodeComponent("u")?.let { "post?u=$it" }
+                path == "section" -> query.encodeComponent("u")?.let { "section?u=$it" }
                 else -> null
             }
         }
@@ -59,14 +59,29 @@ object Deeplinks {
         return null
     }
 
-    private fun String.encodeComponent(key: String): String {
-        val value = substringAfter("$key=").substringBefore('&')
-        // Incoming values may already be percent-encoded (e.g. app shortcuts built
-        // with encode()); decode first so we never double-encode, then normalize.
-        // For raw (unencoded) values this is a no-op round trip.
-        val decoded = runCatching { java.net.URLDecoder.decode(value, "UTF-8") }
-            .getOrDefault(value)
-        return encode(decoded)
+    private fun String.encodeComponent(key: String): String? {
+        val marker = "$key="
+        val keyStarts = mutableListOf(0)
+        var ampersand = indexOf('&')
+        while (ampersand >= 0) {
+            keyStarts += ampersand + 1
+            ampersand = indexOf('&', ampersand + 1)
+        }
+        val start = keyStarts.firstOrNull { substring(it).startsWith(marker) } ?: return null
+
+        // This route has one URL argument. Capture the remainder rather than
+        // splitting on '&' or '#', which may belong to the nested URL itself.
+        val raw = substring(start + marker.length)
+        val isFullyEncodedWebUrl = raw.startsWith("http%3A%2F%2F", ignoreCase = true) ||
+            raw.startsWith("https%3A%2F%2F", ignoreCase = true)
+        // Shortcut URLs may already be encoded; raw URLs must not be form-decoded
+        // because '+' can be a literal character in their query string.
+        val normalized = if (isFullyEncodedWebUrl) {
+            runCatching { java.net.URLDecoder.decode(raw, "UTF-8") }.getOrDefault(raw)
+        } else {
+            raw
+        }
+        return encode(normalized)
     }
 }
 

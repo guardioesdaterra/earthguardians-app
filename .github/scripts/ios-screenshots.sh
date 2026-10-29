@@ -79,7 +79,7 @@ declare -a SCREENS=(
   "03-stories|stories"
   "04-maps|maps"
   "05-more|more"
-  "06-section-donate|section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate"
+  "06-section-nested-query|section?u=https://www.earthguardians.org/donate?source=ci&campaign=deeplink#ci-anchor"
 )
 
 for entry in "${SCREENS[@]}"; do

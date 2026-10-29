@@ -53,6 +53,10 @@ jobs:
         working-directory: web
         run: npm install --no-audit --no-fund
 
+      - name: Test nested page arguments
+        working-directory: web
+        run: node --test tests/deeplinks.test.mjs
+
       - name: Generate PWA icons from the shared official mark
         working-directory: web
         run: npm run icons
