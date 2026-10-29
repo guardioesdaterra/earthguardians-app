@@ -543,8 +543,9 @@ def check_native_maps(matrix: dict) -> None:
     require("if (tab == 0) MapMode.Crews else MapMode.Grants" in android_maps and
             'options = listOf("Crews", "Project Grants")' in android_maps,
             "Android picker selections must switch between native crews and grant maps")
-    require("if selection == 0" in ios_maps and "CrewsMapScreen()" in ios_maps and
-            "ProjectGrantsMapScreen()" in ios_maps,
+    require("if selection == 0" in ios_maps and
+            re.search(r"CrewsMapScreen\(\s*focusCrew:\s*focusedCrew\s*\)\s*\{\s*project\s+in\s+focusedProject\s*=\s*project\s*selection\s*=\s*1\s*\}", ios_maps, re.DOTALL) and
+            re.search(r"ProjectGrantsMapScreen\(\s*focusProject:\s*focusedProject\s*\)\s*\{\s*crew\s+in\s+focusedCrew\s*=\s*crew\s*selection\s*=\s*0\s*\}", ios_maps, re.DOTALL),
             "iOS picker selections must open both native public map datasets")
     require("selected = null" in android_maps and "query = \"\"" in android_maps,
             "Android must clear stale marker details and searches when changing map datasets")
