@@ -81,6 +81,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.earthguardians.app
         TARGETED_DEVICE_FAMILY: "1,2"
+        # Dark-variant icon switches automatically on iOS 18+; the iOS 16
+        # config falls back to the universal light icon in the same set.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
       configs:
         Release-iOS18:
           IPHONEOS_DEPLOYMENT_TARGET: "18.0"

@@ -30,6 +30,11 @@ dump_app_log() { # reasons are printed for the CI log AND stored with the artifa
   "$ADB" logcat -d -b crash 2>&1 | tail -120 | tee -a "$LOG" || true
   echo "[shots][ERROR] — error-level logcat (tail):" | tee -a "$LOG"
   "$ADB" logcat -d -v time "*:E" 2>&1 | tail -80 | tee -a "$LOG" || true
+  # Our app's own error channel (navigation failures, sync errors) is easy to
+  # miss inside the Google-suite noise — grep it out explicitly.
+  echo "[shots][ERROR] — the app's own log lines (EgRoute/EgSync/AndroidRuntime):" | tee -a "$LOG"
+  "$ADB" logcat -d -v time 2>&1 | grep -iE "EgRoute|EgSync|AndroidRuntime|org\.earthguardians" \
+    | tail -40 | tee -a "$LOG" || echo "(no app log lines)" | tee -a "$LOG"
   echo "[shots][ERROR] — focused window / resumed activity:" | tee -a "$LOG"
   {
     "$ADB" shell dumpsys window 2>/dev/null | grep -i "mCurrentFocus\|mFocusedApp" || true
@@ -151,10 +156,10 @@ sleep 2
 declare -a SCREENS=(
   "01-home|earthguardians://home|Upcoming"
   "02-events|earthguardians://events|Every crew gathering"
-  "03-stories|earthguardians://stories|Dispatches from the Earth Guardian blog"
+  "03-stories|earthguardians://stories|Shared on the blog"
   "04-maps|earthguardians://maps|EG-Maps"
   "05-more|earthguardians://more|More"
-  "06-section-donate|earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate|"
+  "06-section-donate|earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate|Donate"
 )
 
 FAILURES=0
@@ -171,6 +176,9 @@ for entry in "${SCREENS[@]}"; do
   fi
   if [ -n "$expected" ]; then
     if wait_visible "$expected"; then
+      # Root pages pay an extra settle so live content (feed, WebView page)
+      # is on screen when the frame is taken.
+      sleep 5
       shot "$name"
     else
       dump_app_log "screen verification failed for $name (expected '$expected')"

@@ -79,7 +79,7 @@ internal fun StoriesScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            LargeTitle(title = "Stories", subtitle = "Dispatches from the Earth Guardian blog.")
+            LargeTitle(title = "Stories", subtitle = "Shared on the blog.")
             EgSearchField(
                 value = query,
                 onValueChange = { query = it },

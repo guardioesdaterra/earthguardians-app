@@ -53,6 +53,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import android.util.Log
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.earthguardians.app.data.model.EgEvent
@@ -141,7 +142,10 @@ private fun MainTabs(graph: AppGraph) {
     LaunchedEffect(navController) {
         graph.routeBus.pending.collectLatest { route ->
             if (route != null) {
+                // A swallowed failure here once blanked the WebView screens:
+                // navigate() throwing left the route unused with zero evidence.
                 runCatching { navController.navigate(route) { launchSingleTop = true } }
+                    .onFailure { Log.e("EgRoute", "navigate failed for '$route'", it) }
                 graph.routeBus.consume()
             }
         }

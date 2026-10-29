@@ -426,3 +426,52 @@ jobs:
           name: screenshots-ios
           if-no-files-found: ignore
           path: shots/
+
+  binaries:
+    name: Publish binaries (real files, not zips)
+    # Actions artifacts are ALWAYS zip-wrapped when downloaded. This job
+    # re-publishes the raw binaries — properly named .apk/.aab/.ipa files —
+    # as assets of a rolling pre-release so users download actual files.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [android, ios-ipa]
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout (gh cli needs a repo context)
+        uses: actions/checkout@v4
+
+      - name: Download built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "{android-universal-apk,android-release-aab,ios-ipa-iOS16,ios-ipa-iOS18,ios-ipa-iOS26}"
+          # No name → each artifact unpacks into its own directory.
+
+      - name: Stage real files with proper names
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp android-universal-apk/debug/app-debug.apk dist/EG-android-debug.apk
+          cp android-universal-apk/release/app-release.apk dist/EG-android-release.apk
+          cp android-release-aab/app-release.aab dist/EG-android-release.aab
+          cp ios-ipa-iOS16/EG-iOS16.ipa dist/EG-iOS16.ipa
+          cp ios-ipa-iOS18/EG-iOS18.ipa dist/EG-iOS18.ipa
+          cp ios-ipa-iOS26/EG-iOS26.ipa dist/EG-iOS26.ipa
+          ls -la dist/
+
+      - name: Attach to the rolling 'builds' pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view builds > /dev/null 2>&1; then
+            gh release create builds --prerelease \
+              --title "Latest CI builds" \
+              --notes "Rolling artifacts from the latest green main build. Real files (no zip wrapping): debug/release APKs (release is debug-signed, installs directly), AAB for Play upload, and the three iOS IPAs (unsigned; sideload via Xcode/AltStore). macOS: Control-click → Save to disk, rename if a .zip extension is appended."
+          fi
+          gh release edit builds --prerelease --title "Latest CI builds" --notes \
+            "Rolling artifacts from the latest green main build (commit ${GITHUB_SHA:0:7}). Real files (no zip wrapping): debug/release APKs (release is debug-signed, installs directly), AAB for Play upload, and the three iOS IPAs (unsigned; sideload via Xcode/AltStore). macOS may append .zip on download — rename to the real extension."
+          gh release upload builds dist/EG-android-debug.apk dist/EG-android-release.apk dist/EG-android-release.aab dist/EG-iOS16.ipa dist/EG-iOS18.ipa dist/EG-iOS26.ipa --clobber
+          gh release view builds --json assets --jq '.assets[] | .name + " (" + (.size|tostring) + " bytes)"'

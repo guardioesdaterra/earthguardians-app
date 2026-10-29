@@ -13,7 +13,7 @@ struct StoriesScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
-                LargeTitle("Stories", subtitle: "Dispatches from the Earth Guardian blog.")
+                LargeTitle("Stories", subtitle: "Shared on the blog.")
                 EgSearchField(value: $query, placeholder: "Search stories…")
             }
             .padding(.top, 6)

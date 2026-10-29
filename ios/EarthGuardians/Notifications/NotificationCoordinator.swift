@@ -26,7 +26,7 @@ public final class NotificationCoordinator: ObservableObject {
         var subtitle: String {
             switch self {
             case .events: return "When crews post events, you hear it here"
-            case .stories: return "Dispatches from the Earth Guardian blog"
+            case .stories: return "Shared on the blog"
             case .actions: return "Urgent actions and app news"
             }
         }
