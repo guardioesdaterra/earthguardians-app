@@ -49,9 +49,30 @@ struct MapsScreen: View {
 
 private let egMapsHomeURL = URL(string: "https://guardioesdaterra.github.io/EG-Maps/")!
 
+private func isAllowedEGMapsURL(_ url: URL) -> Bool {
+    guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+          components.scheme?.lowercased() == "https",
+          components.host?.lowercased() == "guardioesdaterra.github.io",
+          components.port == nil || components.port == 443,
+          components.user == nil,
+          components.password == nil else { return false }
+    let path = components.path
+    let encodedPath = components.percentEncodedPath.lowercased()
+    let segments = path.split(separator: "/")
+    return (components.percentEncodedPath == "/EG-Maps" || components.percentEncodedPath == "/EG-Maps/" || components.percentEncodedPath.hasPrefix("/EG-Maps/"))
+        && !encodedPath.contains("%2f")
+        && !encodedPath.contains("%5c")
+        && !encodedPath.contains("%2e")
+        && segments.first == "EG-Maps"
+        && !segments.contains(where: { $0 == "." || $0 == ".." })
+}
+
 private struct MapsHomeWebView: UIViewRepresentable {
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        webView.navigationDelegate = context.coordinator
         webView.backgroundColor = .clear
         webView.isOpaque = false
         webView.scrollView.backgroundColor = .clear
@@ -61,6 +82,32 @@ private struct MapsHomeWebView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {}
+
+    private final class Coordinator: NSObject, WKNavigationDelegate {
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            guard let url = navigationAction.request.url, isAllowedEGMapsURL(url) else {
+                decisionHandler(.cancel)
+                return
+            }
+            decisionHandler(.allow)
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationResponse: WKNavigationResponse,
+            decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
+        ) {
+            guard let url = navigationResponse.response.url, isAllowedEGMapsURL(url) else {
+                decisionHandler(.cancel)
+                return
+            }
+            decisionHandler(.allow)
+        }
+    }
 }
 
 // MARK: - Public map models and local loader
@@ -181,7 +228,9 @@ private struct CrewsMapScreen: View {
 
                     if let selectedLocation {
                         crewLocationCard(selectedLocation)
-                            .padding(14)
+                            .padding(.horizontal, 14)
+                            .padding(.top, 14)
+                            .padding(.bottom, 56)
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
@@ -244,9 +293,9 @@ private struct CrewsMapScreen: View {
             detailRow("Region", value: item.region)
             detailRow("Coordinates", value: String(format: "%.4f, %.4f", item.lat, item.lng))
 
-            mapSectionTitle("Nearby Crews · \(nearby.count)")
+            mapSectionTitle("Nearby Crews · within \(Int(nearbyCrewMaxDistanceKm)) km · \(nearby.count)")
             if nearby.isEmpty {
-                Text("No other Crew locations are available.").font(.system(size: 12)).foregroundColor(.secondary)
+                Text("No other Crew locations are within \(Int(nearbyCrewMaxDistanceKm)) km.").font(.system(size: 12)).foregroundColor(.secondary)
             } else {
                 ForEach(nearby) { entry in
                     Button { focus(on: entry.crew) } label: {
@@ -275,7 +324,7 @@ private struct CrewsMapScreen: View {
                             Text(formatDistance(entry.distanceKm)).font(.system(size: 10, weight: .medium)).foregroundColor(.secondary)
                         }
                         HStack {
-                            Text("Beneficiaries: \(compactNumber(entry.project.direct_beneficiaries)) direct · \(compactNumber(entry.project.indirect_beneficiaries)) indirect")
+                            Text("Beneficiaries: \(beneficiaryCount(entry.project.direct_beneficiaries)) direct · \(beneficiaryCount(entry.project.indirect_beneficiaries)) indirect")
                                 .font(.system(size: 10)).foregroundColor(.secondary)
                             Spacer()
                             Button("Fly to") { onFlyToProject(entry.project) }
@@ -364,7 +413,9 @@ private struct ProjectGrantsMapScreen: View {
 
                     if let selectedGrant {
                         projectDetailCard(selectedGrant)
-                        .padding(14)
+                            .padding(.horizontal, 14)
+                            .padding(.top, 14)
+                            .padding(.bottom, 56)
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
@@ -392,18 +443,18 @@ private struct ProjectGrantsMapScreen: View {
         let total = max(0, project.direct_beneficiaries) + max(0, project.indirect_beneficiaries)
         let nearby = nearestCrews(to: project.coordinate, in: crews)
         return detailCard(title: project.project_title, subtitle: project.country_province, icon: "leaf.fill") {
-            detailRow("Direct beneficiaries", value: project.direct_beneficiaries > 0 ? compactNumber(project.direct_beneficiaries) : "Unknown")
-            detailRow("Indirect beneficiaries", value: project.indirect_beneficiaries > 0 ? compactNumber(project.indirect_beneficiaries) : "Unknown")
-            detailRow("Total beneficiaries", value: total > 0 ? compactNumber(total) : "Unknown")
+            detailRow("Direct beneficiaries", value: beneficiaryCount(project.direct_beneficiaries))
+            detailRow("Indirect beneficiaries", value: beneficiaryCount(project.indirect_beneficiaries))
+            detailRow("Total beneficiaries", value: beneficiaryCount(total))
             if total > 0 {
                 detailRow("Direct share", value: "\(Int((Double(max(0, project.direct_beneficiaries)) / Double(total) * 100).rounded()))%")
                 ProgressView(value: Double(max(0, project.direct_beneficiaries)) / Double(total))
                     .tint(palette.eco)
             }
 
-            mapSectionTitle("Nearby Crews · \(nearby.count)")
+            mapSectionTitle("Nearby Crews · within \(Int(nearbyCrewMaxDistanceKm)) km · \(nearby.count)")
             if nearby.isEmpty {
-                Text("No Crew locations are available near this project.").font(.system(size: 12)).foregroundColor(.secondary)
+                Text("No Crew locations are within \(Int(nearbyCrewMaxDistanceKm)) km of this project.").font(.system(size: 12)).foregroundColor(.secondary)
             } else {
                 ForEach(nearby) { entry in
                     Button { onSelectNearbyCrew(entry.crew) } label: {
@@ -561,9 +612,12 @@ private struct NearbyProject: Identifiable {
     var id: String { project.id }
 }
 
+private let nearbyCrewMaxDistanceKm = 150.0
+
 private func nearestCrews(to coordinate: CLLocationCoordinate2D, in crews: [CrewLocation], excluding excluded: CrewLocation? = nil) -> [NearbyCrew] {
     crews.filter { $0.id != excluded?.id }
         .map { NearbyCrew(crew: $0, distanceKm: distanceKm(coordinate, $0.coordinate)) }
+        .filter { $0.distanceKm <= nearbyCrewMaxDistanceKm }
         .sorted { $0.distanceKm < $1.distanceKm }
         .prefix(8)
         .map { $0 }
@@ -630,6 +684,10 @@ private func formatDistance(_ km: Double) -> String {
 
 private func compactNumber(_ value: Int) -> String {
     value.formatted(.number.notation(.compactName))
+}
+
+private func beneficiaryCount(_ value: Int) -> String {
+    value > 0 ? compactNumber(value) : "Not reported"
 }
 
 private func googleMapsURL(latitude: Double, longitude: Double) -> URL {
@@ -706,7 +764,8 @@ private func mapLegend(text: String) -> some View {
 }
 
 private func attributionLabel() -> some View {
-    Text("Satellite imagery © Apple")
+    // MKMapView's native legal attribution control remains visible with Apple's full map-source terms.
+    Text("Satellite imagery · Map data © Apple")
         .font(.system(size: 10, weight: .medium))
         .foregroundColor(.secondary)
         .padding(.horizontal, 7)

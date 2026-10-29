@@ -8,6 +8,8 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -49,7 +52,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Surface
 import androidx.compose.ui.viewinterop.AndroidView
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -69,6 +71,8 @@ import org.earthguardians.app.ui.design.EgSegmentedControl
 import org.earthguardians.app.ui.design.GlassCard
 import org.earthguardians.app.ui.design.LargeTitle
 import org.earthguardians.app.ui.theme.egPalette
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.Icon
 import org.maplibre.android.annotations.IconFactory
@@ -80,6 +84,7 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import java.math.BigDecimal
+import java.io.ByteArrayInputStream
 import java.text.Normalizer
 import java.text.NumberFormat
 import java.util.Locale
@@ -91,6 +96,59 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 private const val EG_MAPS_HOME_URL = "https://guardioesdaterra.github.io/EG-Maps/"
+private const val EG_MAPS_HOST = "guardioesdaterra.github.io"
+private const val EG_MAPS_PATH = "/EG-Maps"
+private const val NEARBY_CREW_MAX_DISTANCE_KM = 150.0
+private val EG_MAPS_FORM_GUARD_SCRIPT = """
+    (() => {
+      const isAllowed = (value) => {
+        try {
+          const target = new URL(value, window.location.href);
+          const path = target.pathname;
+          return target.origin === "https://guardioesdaterra.github.io"
+            && target.username === ""
+            && target.password === ""
+            && (path === "/EG-Maps" || path === "/EG-Maps/" || path.startsWith("/EG-Maps/"))
+            && !/%2f|%5c|%2e/i.test(path);
+        } catch (_) {
+          return false;
+        }
+      };
+      if (typeof HTMLFormElement === "undefined") return;
+      document.addEventListener("submit", (event) => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        const submitter = event.submitter;
+        const action = submitter && submitter.formAction ? submitter.formAction : form.action;
+        if (!isAllowed(action)) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      }, true);
+      const nativeSubmit = HTMLFormElement.prototype.submit;
+      HTMLFormElement.prototype.submit = function() {
+        if (!isAllowed(this.action)) return;
+        return nativeSubmit.call(this);
+      };
+    })();
+""".trimIndent()
+
+private fun isAllowedEgMapsUrl(uri: Uri): Boolean {
+    val path = uri.path ?: return false
+    val encodedPath = uri.encodedPath?.lowercase(Locale.ROOT) ?: return false
+    val segments = uri.pathSegments
+    return uri.scheme.equals("https", ignoreCase = true)
+        && uri.host.equals(EG_MAPS_HOST, ignoreCase = true)
+        && (uri.port == -1 || uri.port == 443)
+        && uri.userInfo == null
+        && (path == EG_MAPS_PATH || path == "$EG_MAPS_PATH/" || path.startsWith("$EG_MAPS_PATH/"))
+        && !encodedPath.contains("%2f")
+        && !encodedPath.contains("%5c")
+        && !encodedPath.contains("%2e")
+        && segments.firstOrNull() == "EG-Maps"
+        && segments.none { it == "." || it == ".." }
+}
+
 private val SATELLITE_STYLE = """
     {
       "version": 8,
@@ -229,40 +287,82 @@ private fun ErrorMaps(message: String) {
 
 @Composable
 private fun EGMapsHomeWebView(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val webView = remember(context) {
-        WebView(context).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.useWideViewPort = true
-            settings.loadWithOverviewMode = true
-            settings.javaScriptCanOpenWindowsAutomatically = false
-            settings.setSupportMultipleWindows(false)
-            webViewClient = WebViewClient()
-            webChromeClient = WebChromeClient()
-            loadUrl(EG_MAPS_HOME_URL)
-        }
+    val documentStartScriptSupported = remember {
+        WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
     }
-    DisposableEffect(webView, lifecycleOwner) {
-        val observer = object : DefaultLifecycleObserver {
-            override fun onResume(owner: LifecycleOwner) {
-                webView.onResume()
-            }
+    if (documentStartScriptSupported) {
+        val context = LocalContext.current
+        val lifecycleOwner = LocalLifecycleOwner.current
+        val webView = remember(context) {
+            WebView(context).apply {
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.useWideViewPort = true
+                settings.loadWithOverviewMode = true
+                settings.javaScriptCanOpenWindowsAutomatically = false
+                settings.setSupportMultipleWindows(false)
+                settings.allowFileAccess = false
+                settings.allowContentAccess = false
+                WebViewCompat.addDocumentStartJavaScript(
+                    this,
+                    EG_MAPS_FORM_GUARD_SCRIPT,
+                    setOf("https://$EG_MAPS_HOST"),
+                )
+                webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean =
+                        !isAllowedEgMapsUrl(request.url)
 
-            override fun onPause(owner: LifecycleOwner) {
-                webView.onPause()
+                    override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest): WebResourceResponse? {
+                        if (request.isForMainFrame && !isAllowedEgMapsUrl(request.url)) {
+                            return WebResourceResponse(
+                                "text/plain",
+                                "utf-8",
+                                403,
+                                "Blocked by EG-Maps navigation policy",
+                                emptyMap(),
+                                ByteArrayInputStream(ByteArray(0)),
+                            )
+                        }
+                        return super.shouldInterceptRequest(view, request)
+                    }
+
+                    @Suppress("DEPRECATION")
+                    override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean =
+                        url?.let { !isAllowedEgMapsUrl(Uri.parse(it)) } ?: true
+                }
+                webChromeClient = WebChromeClient()
+                loadUrl(EG_MAPS_HOME_URL)
             }
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            webView.stopLoading()
-            webView.onPause()
-            webView.destroy()
+        DisposableEffect(webView, lifecycleOwner) {
+            val observer = object : DefaultLifecycleObserver {
+                override fun onResume(owner: LifecycleOwner) {
+                    webView.onResume()
+                }
+
+                override fun onPause(owner: LifecycleOwner) {
+                    webView.onPause()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+                webView.stopLoading()
+                webView.onPause()
+                webView.destroy()
+            }
+        }
+        AndroidView(factory = { webView }, modifier = modifier)
+    } else {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            Text(
+                "Update Android System WebView to safely open EG-Maps.",
+                color = egPalette.muted,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(24.dp),
+            )
         }
     }
-    AndroidView(factory = { webView }, modifier = modifier)
 }
 
 @Composable
@@ -324,7 +424,13 @@ private fun NativeMapPanel(
                 Row(Modifier.padding(horizontal = 10.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Map, contentDescription = null, tint = egPalette.eco, modifier = Modifier.height(14.dp))
                     Spacer(Modifier.width(5.dp))
-                    BasicText("Imagery © Esri & contributors", style = androidx.compose.ui.text.TextStyle(color = Color(0xFF33443B), fontSize = 10.sp))
+                    Text(
+                        "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community",
+                        color = Color(0xFF33443B),
+                        fontSize = 9.sp,
+                        lineHeight = 11.sp,
+                        modifier = Modifier.widthIn(max = 260.dp),
+                    )
                 }
             }
         }
@@ -361,9 +467,9 @@ private fun SelectionCard(
                     Text(listOfNotNull(crew.city.takeIf(String::isNotBlank), crew.state?.takeIf(String::isNotBlank), crew.country.takeIf(String::isNotBlank)).joinToString(", "), color = egPalette.muted, fontSize = 13.sp)
                     Text("${crew.status.replaceFirstChar { it.uppercase() }} · ${crew.region}", color = if (crew.status.equals("active", true)) Color(0xFF247E46) else Color(0xFFC27812), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Text("Coordinates  ${String.format(Locale.ROOT, "%.4f", crew.lat)}, ${String.format(Locale.ROOT, "%.4f", crew.lng)}", color = egPalette.muted, fontSize = 11.sp)
-                    DetailSectionTitle("Nearby Crews · ${nearby.size}")
+                    DetailSectionTitle("Nearby Crews · within ${NEARBY_CREW_MAX_DISTANCE_KM.toInt()} km · ${nearby.size}")
                     if (nearby.isEmpty()) {
-                        Text("No other Crew locations are available.", color = egPalette.muted, fontSize = 12.sp)
+                        Text("No other Crew locations are within ${NEARBY_CREW_MAX_DISTANCE_KM.toInt()} km.", color = egPalette.muted, fontSize = 12.sp)
                     } else nearby.forEach { entry ->
                         NearbyCrewRow(entry, onClick = { onSelectNearbyCrew(entry.crew) })
                     }
@@ -401,9 +507,9 @@ private fun SelectionCard(
                             Box(Modifier.fillMaxWidth(share).fillMaxSize().background(egPalette.eco))
                         }
                     }
-                    DetailSectionTitle("Nearby Crews · ${nearby.size}")
+                    DetailSectionTitle("Nearby Crews · within ${NEARBY_CREW_MAX_DISTANCE_KM.toInt()} km · ${nearby.size}")
                     if (nearby.isEmpty()) {
-                        Text("No Crew locations are available near this project.", color = egPalette.muted, fontSize = 12.sp)
+                        Text("No Crew locations are within ${NEARBY_CREW_MAX_DISTANCE_KM.toInt()} km of this project.", color = egPalette.muted, fontSize = 12.sp)
                     } else nearby.forEach { entry ->
                         NearbyCrewRow(entry, onClick = { onSelectNearbyCrew(entry.crew) })
                     }
@@ -426,6 +532,7 @@ private fun nearbyCrews(crews: List<CrewLocation>, latitude: Double, longitude: 
     return crews.asSequence()
         .filter { it != exclude }
         .map { NearbyCrew(it, distanceKm(latitude, longitude, it.lat, it.lng)) }
+        .filter { it.distanceKm <= NEARBY_CREW_MAX_DISTANCE_KM }
         .sortedBy { it.distanceKm }
         .take(8)
         .toList()
@@ -476,7 +583,7 @@ private fun formatDistance(km: Double): String = when {
 }
 
 private fun beneficiaryCount(value: Int): String =
-    if (value <= 0) "Unknown" else NumberFormat.getNumberInstance().format(value)
+    if (value <= 0) "Not reported" else NumberFormat.getNumberInstance().format(value)
 
 @Composable
 private fun DetailSectionTitle(text: String) {
