@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
@@ -60,6 +61,7 @@ import org.earthguardians.app.ui.common.OfficialSiteImages
 import org.earthguardians.app.ui.common.OfficialSitePhotoCollage
 import org.earthguardians.app.ui.common.PostRowCard
 import org.earthguardians.app.ui.design.BentoTile
+import org.earthguardians.app.ui.design.EgPrimaryButton
 import org.earthguardians.app.ui.design.EgPill
 import org.earthguardians.app.ui.design.EgRadius
 import org.earthguardians.app.ui.design.FailedState
