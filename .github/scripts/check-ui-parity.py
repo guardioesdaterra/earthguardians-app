@@ -475,27 +475,45 @@ def check_startup_handoff(matrix: dict, android_script: str, ios_script: str) ->
 def check_native_maps(matrix: dict) -> None:
     contract = matrix["native_maps"]
     picker_options = contract["picker_options"]
+    experience_options = ["Native", "EG-Maps"]
+    expected_public_datasets = ["Crews", "Project Grants"]
     public_grants_path = contract["public_grants_path"]
     private_manager_path = contract["private_manager_path"]
     datasets = contract["datasets"]
 
     android_maps = read_text(ANDROID_MAPS)
     ios_maps = read_text(IOS_MAPS)
-    android_picker = re.search(r"EgSegmentedControl\(\s*options\s*=\s*listOf\((.*?)\)", android_maps, re.DOTALL)
-    ios_picker = re.search(r"EgSegmented\(options:\s*\[(.*?)\]", ios_maps, re.DOTALL)
-    require(android_picker is not None, "Android native Maps screen must expose its dataset picker")
-    require(ios_picker is not None, "iOS native Maps screen must expose its dataset picker")
-    android_options = re.findall(r'"([^"]+)"', android_picker.group(1))
-    ios_options = re.findall(r'"([^"]+)"', ios_picker.group(1))
-    require(android_options == picker_options,
-            "Android public map picker must contain only Crews and Project Grants")
-    require(ios_options == picker_options,
-            "iOS public map picker must contain only Crews and Project Grants")
+    require(picker_options == expected_public_datasets,
+            "native Maps contract must expose exactly the two public datasets: Crews and Project Grants")
+    android_controls = re.findall(
+        r"EgSegmentedControl\(\s*options\s*=\s*listOf\((.*?)\)", android_maps, re.DOTALL)
+    ios_controls = re.findall(r"EgSegmented\(options:\s*\[(.*?)\]", ios_maps, re.DOTALL)
+    require(len(android_controls) == 2,
+            "Android Maps screen must expose an experience selector and a public dataset picker")
+    require(len(ios_controls) == 2,
+            "iOS Maps screen must expose an experience selector and a public dataset picker")
 
-    require(private_manager_path not in android_maps.lower() and private_manager_path not in ios_maps.lower(),
-            "the manager-only grants route must not appear in either public native map picker")
+    android_experience_options = re.findall(r'"([^"]+)"', android_controls[0])
+    ios_experience_options = re.findall(r'"([^"]+)"', ios_controls[0])
+    require(android_experience_options == experience_options,
+            "Android Maps experience selector must contain Native and EG-Maps")
+    require(ios_experience_options == experience_options,
+            "iOS Maps experience selector must contain Native and EG-Maps")
+
+    android_dataset_options = re.findall(r'"([^"]+)"', android_controls[1])
+    ios_dataset_options = re.findall(r'"([^"]+)"', ios_controls[1])
+    require(android_dataset_options == picker_options,
+            "Android public map dataset picker must contain exactly Crews and Project Grants")
+    require(ios_dataset_options == picker_options,
+            "iOS public map dataset picker must contain exactly Crews and Project Grants")
+
     android_library = read_text(ANDROID_RESOURCE_LIBRARY)
     ios_library = read_text(IOS_RESOURCE_LIBRARY)
+    require(private_manager_path.lower() not in android_maps.lower() and
+            private_manager_path.lower() not in ios_maps.lower() and
+            private_manager_path.lower() not in android_library.lower() and
+            private_manager_path.lower() not in ios_library.lower(),
+            "private /eg-grants manager route must remain outside public native Maps and resource metadata")
     require(f'id = "project-grants"' in android_library and
             f'canonicalPath = "{public_grants_path}"' in android_library,
             "Android resource metadata must keep Project Grants on the public /project-grants route")
