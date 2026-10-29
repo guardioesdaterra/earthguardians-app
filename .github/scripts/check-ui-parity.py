@@ -293,7 +293,6 @@ def check_onboarding_photo_layouts(
     require(grid_keys == expected_catalog_order,
             "onboarding photo grid must use the complete six-photo local catalog in order")
     expected_android_grid = [images_by_key[key]["android_symbol"] for key in grid_keys]
-    expected_ios_grid = [images_by_key[key]["ios_symbol"] for key in grid_keys]
 
     android_grid_list = re.search(r"private val onboardingGridImages\s*=\s*listOf\((.*?)\)", android, re.DOTALL)
     require(android_grid_list is not None, "Android onboarding must define its local photo-grid image list")
@@ -301,7 +300,7 @@ def check_onboarding_photo_layouts(
     require(android_grid_symbols == expected_android_grid and
             [android_key_by_symbol.get(symbol) for symbol in android_grid_symbols] == grid_keys,
             "Android onboarding grid must reference the six bundled catalog photos in matrix order")
-    require([ios_key_by_symbol.get(image["ios_symbol"]) for image in matrix["official_images"]] == expected_ios_grid,
+    require([ios_key_by_symbol.get(image["ios_symbol"]) for image in matrix["official_images"]] == grid_keys,
             "iOS onboarding grid must use the six bundled catalog photos in matrix order")
 
     android_backdrop = source_section(
