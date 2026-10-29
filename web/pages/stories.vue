@@ -1,0 +1,1 @@
+<template><StoriesPage /></template>

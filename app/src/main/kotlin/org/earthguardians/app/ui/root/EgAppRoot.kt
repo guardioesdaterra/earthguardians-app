@@ -204,13 +204,15 @@ private fun MainTabs(graph: AppGraph) {
                 )
             }
 
+            // Navigation query arguments are already URI-decoded once; decoding
+            // them again would corrupt escaped characters inside the page URL.
             composable(
                 Routes.EVENT_DETAIL,
                 arguments = listOf(navArgument("e") { type = NavType.StringType; defaultValue = "" }),
             ) { entry ->
                 EventDetailScreen(
                     graph = graph,
-                    eventUrl = Deeplinks.decode(entry.arguments?.getString("e")),
+                    eventUrl = entry.arguments?.getString("e").orEmpty(),
                     onBack = { popSafely(navController) },
                     onOpenPage = { url -> navController.navigateSafely(Routes.section(url)) },
                 )
@@ -221,7 +223,7 @@ private fun MainTabs(graph: AppGraph) {
                 arguments = listOf(navArgument("u") { type = NavType.StringType; defaultValue = "" }),
             ) { entry ->
                 StoryReaderScreen(
-                    postUrl = Deeplinks.decode(entry.arguments?.getString("u")),
+                    postUrl = entry.arguments?.getString("u").orEmpty(),
                     graph = graph,
                     onBack = { popSafely(navController) },
                     onOpenFull = { url -> navController.navigateSafely(Routes.section(url)) },
@@ -233,7 +235,7 @@ private fun MainTabs(graph: AppGraph) {
                 arguments = listOf(navArgument("u") { type = NavType.StringType; defaultValue = "" }),
             ) { entry ->
                 WebViewScreen(
-                    url = Deeplinks.decode(entry.arguments?.getString("u")),
+                    url = entry.arguments?.getString("u").orEmpty(),
                     graph = graph,
                     onBack = { popSafely(navController) },
                 )

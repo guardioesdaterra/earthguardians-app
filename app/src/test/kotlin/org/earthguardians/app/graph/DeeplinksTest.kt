@@ -1,8 +1,12 @@
 package org.earthguardians.app.graph
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.w3c.dom.Element
+import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * Unit tests for pure-Kotlin deep-link routing. The percent-encoding contract
@@ -72,6 +76,90 @@ class DeeplinksTest {
             "section?u=${Deeplinks.encode(donateUrl.replace("www.", ""))}",
             Deeplinks.parseRoute(donateUrl.replace("www.", "")),
         )
+    }
+
+    @Test
+    fun `bare official host url with query routes to section`() {
+        val url = "https://earthguardians.org?utm_source=app"
+        assertEquals("section?u=${Deeplinks.encode(url)}", Deeplinks.parseRoute(url))
+    }
+
+    @Test
+    fun `raw nested query and fragment survive page argument routing`() {
+        val pageUrl = "https://www.earthguardians.org/programs/youth%20climate?source=app&topic=climate+justice#join"
+        val cases = listOf("section" to "u", "post" to "u", "event" to "e")
+
+        cases.forEach { (target, key) ->
+            val marker = "$target?$key="
+            val expectedRoute = "$marker${Deeplinks.encode(pageUrl)}"
+            val rawRoute = Deeplinks.parseRoute("earthguardians://$target?source=share&$key=$pageUrl")
+            assertEquals(expectedRoute, rawRoute)
+            // AndroidX Navigation decodes this route query argument once.
+            assertEquals(pageUrl, java.net.URLDecoder.decode(rawRoute!!.removePrefix(marker), "UTF-8"))
+
+            val encodedRoute = Deeplinks.parseRoute("earthguardians://$target?$key=${Deeplinks.encode(pageUrl)}")
+            assertEquals(expectedRoute, encodedRoute)
+            assertEquals(pageUrl, java.net.URLDecoder.decode(encodedRoute!!.removePrefix(marker), "UTF-8"))
+        }
+    }
+
+    @Test
+    fun `official app link filter has no path restriction so bare host matches`() {
+        val manifest = listOf(
+            File("app/src/main/AndroidManifest.xml"),
+            File("src/main/AndroidManifest.xml"),
+        ).firstOrNull(File::isFile) ?: error("AndroidManifest.xml not found from ${File(".").absolutePath}")
+        val androidNamespace = "http://schemas.android.com/apk/res/android"
+        val factory = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+        val document = factory.newDocumentBuilder().parse(manifest)
+        val intentFilters = document.getElementsByTagName("intent-filter")
+        val officialHosts = setOf("earthguardians.org", "www.earthguardians.org")
+        val appLinkFilters = (0 until intentFilters.length)
+            .map { intentFilters.item(it) as Element }
+            .filter { filter ->
+                val data = filter.getElementsByTagName("data")
+                (0 until data.length).any { (data.item(it) as Element).getAttributeNS(androidNamespace, "host") in officialHosts }
+            }
+
+        assertEquals("Expected one official HTTPS link filter", 1, appLinkFilters.size)
+        val data = appLinkFilters.single().getElementsByTagName("data")
+        val hosts = (0 until data.length).map { (data.item(it) as Element).getAttributeNS(androidNamespace, "host") }.toSet()
+        assertEquals(officialHosts, hosts)
+        (0 until data.length).forEach { index ->
+            val element = data.item(index) as Element
+            assertEquals("https", element.getAttributeNS(androidNamespace, "scheme"))
+            listOf("path", "pathPrefix", "pathPattern", "pathAdvancedPattern", "pathSuffix").forEach { attribute ->
+                assertFalse("Official link filter must not constrain $attribute", element.hasAttributeNS(androidNamespace, attribute))
+            }
+        }
+    }
+
+    @Test
+    fun `section page argument preserves nested query and fragment`() {
+        val pageUrl = "https://www.earthguardians.org/programs/youth%20climate?source=app&topic=climate%20justice#join"
+        val encodedUrl = Deeplinks.encode(pageUrl)
+        val route = Deeplinks.parseRoute("earthguardians://section?u=$encodedUrl")
+
+        assertEquals("section?u=$encodedUrl", route)
+        assertEquals(pageUrl, Deeplinks.decode(route!!.substringAfter("section?u=")))
+    }
+
+    @Test
+    fun `bare official site root normalizes to the exact in-app section route`() {
+        val rootUrl = "https://earthguardians.org"
+        val route = Deeplinks.parseRoute(rootUrl)
+
+        val expectedRoute = "section?u=https%3A%2F%2Fearthguardians.org"
+        assertEquals(expectedRoute, route)
+        assertEquals(route, Deeplinks.parseRoute("earthguardians://$route"))
+        assertEquals(rootUrl, Deeplinks.decode(route!!.substringAfter("section?u=")))
+    }
+
+    @Test
+    fun `official root link with query preserves argument and rejects lookalike host`() {
+        val rootLink = "https://earthguardians.org?utm_source=app"
+        assertEquals("section?u=${Deeplinks.encode(rootLink)}", Deeplinks.parseRoute(rootLink))
+        assertNull(Deeplinks.parseRoute("https://earthguardians.org.example.com/donate"))
     }
 
     @Test

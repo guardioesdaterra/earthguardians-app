@@ -8,6 +8,7 @@
 set -uo pipefail
 
 PKG="org.earthguardians.app"
+ONBOARDING_DIRECT_ROUTE="earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate"
 SHOTS="shots"
 LOG="$SHOTS/app-log.txt"
 mkdir -p "$SHOTS"
@@ -128,6 +129,7 @@ if [ -z "$APK_PATH" ]; then
 fi
 echo "[shots] installing $APK_PATH"
 "$ADB" install -r -t "$APK_PATH" || { dump_app_log "adb install failed"; exit 1; }
+"$ADB" shell pm clear "$PKG" >/dev/null || { dump_app_log "could not reset app data for first-run onboarding"; exit 1; }
 "$ADB" shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS > /dev/null 2>&1 || true
 
 # Calm animations so captures are steady.
@@ -135,7 +137,7 @@ echo "[shots] installing $APK_PATH"
 "$ADB" shell settings put global transition_animation_scale 0 > /dev/null
 "$ADB" shell settings put global animator_duration_scale 0 > /dev/null
 
-"$ADB" shell am start -n "$PKG/.MainActivity" || { dump_app_log "am start failed"; exit 1; }
+deeplink "$ONBOARDING_DIRECT_ROUTE" || { dump_app_log "onboarding direct-page launch failed"; exit 1; }
 
 # Cold-start crash guard: require the MAIN ACTIVITY foreground within 30s —
 # a blank/launcher screen or a startup crash is a hard failure with output.
@@ -148,9 +150,24 @@ done
 [ -n "$foreground_ok" ] || { dump_app_log "app never became the foreground activity (blank screen or crash)"; exit 1; }
 sleep 3
 
+# ── Capture the image-led first onboarding slide before dismissing it ─────────
+if wait_visible "Youth-led across six continents"; then
+  sleep 2
+  shot "00-onboarding"
+else
+  dump_app_log "onboarding first-slide content was not visible"
+  exit 1
+fi
+
 # ── Complete onboarding (Skip → onFinished) ──────────────────────────────────
 tap_text "Skip" 10 || tap_text "Get started" 4
-sleep 2
+if wait_visible "Donate"; then
+  sleep 2
+  shot "00-onboarding-direct-page"
+else
+  dump_app_log "direct page argument was lost across onboarding"
+  exit 1
+fi
 
 # ── Screen with expectations: name | route | text the screen must show ──────
 declare -a SCREENS=(
@@ -159,7 +176,8 @@ declare -a SCREENS=(
   "03-stories|earthguardians://stories|Shared on the blog"
   "04-maps|earthguardians://maps|EG-Maps"
   "05-more|earthguardians://more|More"
-  "06-section-donate|earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate|Donate"
+  "06-section-nested-query|earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate%3Fsource%3Dci%26campaign%3Ddeeplink%23ci-anchor|Donate"
+  "07-bare-root-host|https://earthguardians.org|"
 )
 
 FAILURES=0

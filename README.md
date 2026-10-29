@@ -1,16 +1,18 @@
-# EarthGuardians — Official App (Android + iOS)
+# EarthGuardians — Official App (Android + iOS + Web)
 
 The official app of [EarthGuardians.org](https://www.earthguardians.org)
 — a youth-led, BIPOC-centered climate justice organization ("You can be the
 single drop of water that creates an enormous ripple effect" — Emmy Scott,
 Executive Director).
 
-Two native apps in one repository, both fully themed, offline-first, and
-integrating the entire site from `earthguardians.org/sitemap.xml`:
+Two native apps and a static web app in one repository, sharing the Earth
+Guardians feeds, resource hub, app routes and brand assets:
 
 - **Android** — Jetpack Compose, minSdk 26, Kotlin.
 - **iOS** — SwiftUI (iOS 16 → 26 via three support tiers), XcodeGen project,
   WidgetKit widget, AppIntents, Spotlight, background refresh.
+- **Web** — Nuxt SSG PWA, installable on mobile/desktop and published to
+  GitHub Pages by `.github/workflows/web-pages.yml` from `main`.
 
 > ⚠️ **Building this project? Read [`AGENTS.md`](AGENTS.md) first — all builds
 > and tests run on GitHub Actions only, never locally.**
@@ -24,6 +26,7 @@ integrating the entire site from `earthguardians.org/sitemap.xml`:
 | **Stories** | The Earth Guardian blog with search + a Vue 3 + VueUse reading experience |
 | **EG-Maps** | Atlas, regional map and endangered-species pages of the site |
 | **More** | Full sitemap-driven navigation, notifications center, settings |
+| **Web PWA** | Static Home, Events, Stories, Maps & tools, More, Settings and Updates screens; cached feed data and an offline shell |
 
 - **Design:** black/white + iOS red `#FF3B30` / green `#34C759`, glassmorphism,
   bento layouts, System/Light/Dark theme switching.
@@ -36,8 +39,12 @@ integrating the entire site from `earthguardians.org/sitemap.xml`:
   share intents, calendar intents, Android backup rules.
 - **Platform (iOS):** the same feature set natively — WidgetKit "Upcoming
   Events" widget, AppIntents (Siri/Shortcuts), CoreSpotlight site indexing,
-  BGTaskScheduler 6h sync, EventKit calendar, share sheets, quick actions,
-  URL scheme + universal links.
+  BGTaskScheduler 6h sync, EventKit calendar, share sheets, URL scheme,
+  webpage-route handling and notification taps.
+- **Web PWA:** deep-link arguments (`?page=events`, `?page=section&u=…` or
+  `?route=earthguardians://…`), install manifest, service worker and static
+  routes suitable for GitHub Pages. The in-app mark and PWA icons are generated
+  with Pillow from the same official master used by Android and iOS.
 
 ## iOS support tiers
 
@@ -77,7 +84,13 @@ uses the newest SDK and UI kit, older tiers keep maximum device compatibility:
 | Universal APK + AAB | `ci.yml` on every push/PR → artifacts |
 | iOS IPA (three tiers) | `ci.yml` (`ios-ipa-iOS16/18/26` artifacts) |
 | Unit tests | `ci.yml` (JVM + `swift test`) |
+| Static web PWA | `web-pages.yml` on PR (build verification) and `main` (deploy to Pages) |
 | Release build (APK + AAB + 3 IPAs) | `release.yml` on tag `v*` |
+
+For the first Pages deployment, set the repository's Pages source to **GitHub
+Actions**. Project Pages builds use `/<repository-name>/` automatically; if a
+custom domain serves the app from `/`, define the Actions variable
+`NUXT_APP_BASE_URL` as `/`.
 
 ```bash
 # after your PR is green on CI:

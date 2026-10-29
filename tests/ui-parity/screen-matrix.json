@@ -1,0 +1,158 @@
+{
+  "approved_image_host": "images.squarespace-cdn.com",
+  "onboarding": {
+    "capture": "00-onboarding",
+    "android_expected_text": "Youth-led across six continents",
+    "home_hero_image": "benin_action",
+    "slide_images": [
+      "community",
+      "benin_action",
+      "fieldwork",
+      "climate_action"
+    ],
+    "photo_grid_images": [
+      "community",
+      "benin_action",
+      "leaves",
+      "fieldwork",
+      "youth_gathering",
+      "climate_action"
+    ],
+    "collage_opacity": {
+      "default_background": 0.075,
+      "home_hero": 0.15
+    },
+    "home_hero_photo_alpha": 0.46,
+    "photo_layouts": {
+      "grid_slide": 0,
+      "full_bleed_slide": 1,
+      "asymmetric_band_slide": 2,
+      "backdrop_grid": {
+        "rows": 5,
+        "columns": 3
+      },
+      "slide_grid": {
+        "rows": 2,
+        "columns": 2
+      },
+      "asymmetric_photo_count": 3,
+      "progress_hit_area_dp": 36,
+      "wallpaper_grid_opacity": 0.28,
+      "backdrop_collage_opacity": 0.10,
+      "full_bleed_background_alpha": 0.65
+    },
+    "direct_page_argument": {
+      "route": "section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate",
+      "expected_text": "Donate"
+    }
+  },
+  "home_logo": {
+    "size_dp": 38,
+    "android": {
+      "light_resource": "eg_brand_mark_on_light",
+      "dark_resource": "eg_brand_mark_on_dark",
+      "light_path": "app/src/main/res/drawable-nodpi/eg_brand_mark_on_light.png",
+      "dark_path": "app/src/main/res/drawable-nodpi/eg_brand_mark_on_dark.png"
+    },
+    "ios": {
+      "asset_name": "EGBrandMark",
+      "asset_directory": "ios/EarthGuardians/Assets.xcassets/EGBrandMark.imageset",
+      "light_filename": "eg-brand-mark-on-light.png",
+      "dark_filename": "eg-brand-mark-on-dark.png"
+    }
+  },
+  "official_images": [
+    {
+      "key": "community",
+      "android_symbol": "COMMUNITY",
+      "android_resource": "eg_home_community",
+      "android_path": "app/src/main/res/drawable-nodpi/eg_home_community.jpg",
+      "ios_symbol": "community",
+      "ios_asset_name": "EGHomeCommunity",
+      "ios_path": "ios/EarthGuardians/Assets.xcassets/EGHomeCommunity.imageset/eg-home-community.jpg"
+    },
+    {
+      "key": "benin_action",
+      "android_symbol": "BENIN_ACTION",
+      "android_resource": "eg_home_benin_action",
+      "android_path": "app/src/main/res/drawable-nodpi/eg_home_benin_action.jpg",
+      "ios_symbol": "beninAction",
+      "ios_asset_name": "EGHomeBeninAction",
+      "ios_path": "ios/EarthGuardians/Assets.xcassets/EGHomeBeninAction.imageset/eg-home-benin-action.jpg"
+    },
+    {
+      "key": "leaves",
+      "android_symbol": "LEAVES",
+      "android_resource": "eg_home_leaves",
+      "android_path": "app/src/main/res/drawable-nodpi/eg_home_leaves.jpg",
+      "ios_symbol": "leaves",
+      "ios_asset_name": "EGHomeLeaves",
+      "ios_path": "ios/EarthGuardians/Assets.xcassets/EGHomeLeaves.imageset/eg-home-leaves.jpg"
+    },
+    {
+      "key": "fieldwork",
+      "android_symbol": "FIELDWORK",
+      "android_resource": "eg_home_fieldwork",
+      "android_path": "app/src/main/res/drawable-nodpi/eg_home_fieldwork.jpg",
+      "ios_symbol": "fieldwork",
+      "ios_asset_name": "EGHomeFieldwork",
+      "ios_path": "ios/EarthGuardians/Assets.xcassets/EGHomeFieldwork.imageset/eg-home-fieldwork.jpg"
+    },
+    {
+      "key": "youth_gathering",
+      "android_symbol": "YOUTH_GATHERING",
+      "android_resource": "eg_home_youth_gathering",
+      "android_path": "app/src/main/res/drawable-nodpi/eg_home_youth_gathering.jpg",
+      "ios_symbol": "youthGathering",
+      "ios_asset_name": "EGHomeYouthGathering",
+      "ios_path": "ios/EarthGuardians/Assets.xcassets/EGHomeYouthGathering.imageset/eg-home-youth-gathering.jpg"
+    },
+    {
+      "key": "climate_action",
+      "android_symbol": "CLIMATE_ACTION",
+      "android_resource": "eg_home_climate_action",
+      "android_path": "app/src/main/res/drawable-nodpi/eg_home_climate_action.jpg",
+      "ios_symbol": "climateAction",
+      "ios_asset_name": "EGHomeClimateAction",
+      "ios_path": "ios/EarthGuardians/Assets.xcassets/EGHomeClimateAction.imageset/eg-home-climate-action.jpg"
+    }
+  ],
+  "screens": [
+    {
+      "name": "01-home",
+      "android_route": "earthguardians://home",
+      "ios_route": "home",
+      "android_expected_text": "Upcoming"
+    },
+    {
+      "name": "02-events",
+      "android_route": "earthguardians://events",
+      "ios_route": "events",
+      "android_expected_text": "Every crew gathering"
+    },
+    {
+      "name": "03-stories",
+      "android_route": "earthguardians://stories",
+      "ios_route": "stories",
+      "android_expected_text": "Shared on the blog"
+    },
+    {
+      "name": "04-maps",
+      "android_route": "earthguardians://maps",
+      "ios_route": "maps",
+      "android_expected_text": "EG-Maps"
+    },
+    {
+      "name": "05-more",
+      "android_route": "earthguardians://more",
+      "ios_route": "more",
+      "android_expected_text": "More"
+    },
+    {
+      "name": "06-section-nested-query",
+      "android_route": "earthguardians://section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate%3Fsource%3Dci%26campaign%3Ddeeplink%23ci-anchor",
+      "ios_route": "section?u=https://www.earthguardians.org/donate?source=ci&campaign=deeplink#ci-anchor",
+      "android_expected_text": "Donate"
+    }
+  ]
+}

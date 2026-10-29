@@ -1,7 +1,8 @@
 // Earth Guardians web — Nuxt SSG for GitHub Pages.
 // No external modules: everything (PWA, theme, design system) is hand-rolled so
 // the build never depends on a module ecosystem update breaking CI.
-const BASE = process.env.NUXT_APP_BASE_URL || '/'
+const rawBase = process.env.NUXT_APP_BASE_URL || '/'
+const BASE = rawBase.endsWith('/') ? rawBase : `${rawBase}/`
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -51,7 +52,9 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   nitro: {
     prerender: {
-      crawlLinks: true,
+      // All app pages are listed below; crawling query links can treat nested
+      // external deep-link URLs as prerender cache keys.
+      crawlLinks: false,
       routes: ['/', '/events', '/stories', '/maps', '/more', '/settings', '/notifications', '/manifest.webmanifest'],
       ignore: ['/api'],
     },

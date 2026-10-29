@@ -5,6 +5,8 @@ name: CI
 # Every push and every pull request must compile + unit-test green before merge.
 #
 # Jobs:
+#   ui-parity-contract → shared Android/iOS screenshot routes and UI assertions
+#   web-pwa             → static PWA/GitHub Pages routes and base-path regression
 #   android       → universal APK (all ABIs, no splits) + AAB + JVM unit tests
 #   ios           → EGCore swift test on both toolchains (Xcode 16 + newest)
 #   ios-ipa       → three unsigned IPAs, one per iOS support tier:
@@ -27,6 +29,54 @@ defaults:
     shell: bash
 
 jobs:
+  ui-parity-contract:
+    name: UI parity — Android/iOS route contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check shared screenshot route matrix
+        run: python3 .github/scripts/check-ui-parity.py
+
+  web-pwa:
+    name: PWA/GitHub Pages regression (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: root
+            pages_base: "/"
+          - label: repository-subpath
+            pages_base: "/earthguardians-app/"
+    env:
+      NUXT_APP_BASE_URL: ${{ matrix.pages_base }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install web dependencies
+        working-directory: web
+        run: npm install --no-audit --no-fund
+      - name: Generate static site for GitHub Pages
+        working-directory: web
+        run: npm run generate
+      - name: Check PWA source contracts
+        working-directory: web
+        run: npm test
+      - name: Check generated routes, manifest and base paths
+        working-directory: web
+        run: node scripts/check-generated-site.mjs .output/public "$NUXT_APP_BASE_URL"
+
   android:
     name: Android — build + unit tests (ubuntu)
     runs-on: ubuntu-latest

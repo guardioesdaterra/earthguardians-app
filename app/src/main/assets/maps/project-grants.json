@@ -1,0 +1,578 @@
+[
+  {
+    "project_title": "Support project for 100 young Mauritanians on Recycling Professions",
+    "country_province": "Mauritanie",
+    "latitude": 21.0079,
+    "longitude": -10.9408,
+    "direct_beneficiaries": 130,
+    "indirect_beneficiaries": 1000
+  },
+  {
+    "project_title": "Agro-Ecological Training for Displaced Rural Farmers",
+    "country_province": "Jos Plateau, Nigeria",
+    "latitude": 9.8965,
+    "longitude": 8.8583,
+    "direct_beneficiaries": 100,
+    "indirect_beneficiaries": 1300
+  },
+  {
+    "project_title": "CLOTHING REMAKE INITIATIVE",
+    "country_province": "Brazil, Sao Paulo",
+    "latitude": -23.5558,
+    "longitude": -46.6396,
+    "direct_beneficiaries": 100,
+    "indirect_beneficiaries": 300
+  },
+  {
+    "project_title": "Rede Colaborativa de Monitoramento de Microplastico (Collaborative Network for Microplastic Monitoring)",
+    "country_province": "Florianopolis, Santa Catarina (Brazil)",
+    "latitude": -27.5969,
+    "longitude": -48.5468,
+    "direct_beneficiaries": 120,
+    "indirect_beneficiaries": 250
+  },
+  {
+    "project_title": "Climate Courage: Collective Mental Health Support",
+    "country_province": "USA/PA",
+    "latitude": 41.2033,
+    "longitude": -77.1945,
+    "direct_beneficiaries": 107,
+    "indirect_beneficiaries": 486
+  },
+  {
+    "project_title": "Renforcement de la Souverainete Alimentaire Feminine par l'Agriculture Durable",
+    "country_province": "Kara, Togo",
+    "latitude": 9.5486,
+    "longitude": 1.1977,
+    "direct_beneficiaries": 50,
+    "indirect_beneficiaries": 300
+  },
+  {
+    "project_title": "Gestion environnementale et lutte contre la deforestation",
+    "country_province": "BOBO DIOULASSO, BURKINA FASO",
+    "latitude": 11.1649,
+    "longitude": -4.3052,
+    "direct_beneficiaries": 500,
+    "indirect_beneficiaries": 2000
+  },
+  {
+    "project_title": "Vulnerable Youth Climate Education",
+    "country_province": "Abomey-Calavi",
+    "latitude": 6.4503,
+    "longitude": 2.3468,
+    "direct_beneficiaries": 50,
+    "indirect_beneficiaries": 100
+  },
+  {
+    "project_title": "LokaLogi: Vision for Waste-conscious Community",
+    "country_province": "Indonesia, Yogyakarta",
+    "latitude": -7.8014,
+    "longitude": 110.3648,
+    "direct_beneficiaries": 535,
+    "indirect_beneficiaries": 3000
+  },
+  {
+    "project_title": "Sakubva Community Clean-Up and tree planting",
+    "country_province": "Mutare, Zimbabwe",
+    "latitude": -18.9758,
+    "longitude": 32.6691,
+    "direct_beneficiaries": 50,
+    "indirect_beneficiaries": 1200
+  },
+  {
+    "project_title": "Green healthcare: Protecting the people and the planet",
+    "country_province": "Owerri, Nigeria",
+    "latitude": 5.5096,
+    "longitude": 7.0391,
+    "direct_beneficiaries": 150,
+    "indirect_beneficiaries": 800
+  },
+  {
+    "project_title": "JARDIN EARTH GUARDIANS",
+    "country_province": "Cotonou, Benin",
+    "latitude": 6.3562,
+    "longitude": 2.4278,
+    "direct_beneficiaries": 100,
+    "indirect_beneficiaries": 1000
+  },
+  {
+    "project_title": "SCHOOL GARDEN AND MANGROVES PROTECTION CLUBS IN BONTHE ISLAND",
+    "country_province": "Sierra Leone",
+    "latitude": 8.4606,
+    "longitude": -11.7799,
+    "direct_beneficiaries": 200,
+    "indirect_beneficiaries": 2500
+  },
+  {
+    "project_title": "sensibilisation et formation des populations du village Ekeke sur les evaluations environnementales et sociales",
+    "country_province": "Cameroon",
+    "latitude": 7.3697,
+    "longitude": 12.3547,
+    "direct_beneficiaries": 70,
+    "indirect_beneficiaries": 350
+  },
+  {
+    "project_title": "J'aime les fibres vegetales",
+    "country_province": "Burundi",
+    "latitude": -3.3731,
+    "longitude": 29.9189,
+    "direct_beneficiaries": 35,
+    "indirect_beneficiaries": 150
+  },
+  {
+    "project_title": "Yili Yiele Energy",
+    "country_province": "Benin, Atlantique",
+    "latitude": 6.6588,
+    "longitude": 2.2237,
+    "direct_beneficiaries": 115,
+    "indirect_beneficiaries": 600
+  },
+  {
+    "project_title": "Education environnementale a l'INP-HB de Yamoussoukro en Cote d'Ivoire",
+    "country_province": "Reseau des Amis de la Nature a l'INP-HB",
+    "latitude": 7.54,
+    "longitude": -5.5471,
+    "direct_beneficiaries": 716,
+    "indirect_beneficiaries": 2336
+  },
+  {
+    "project_title": "Assainissement de l'environnement en milieu scolaire",
+    "country_province": "Togo",
+    "latitude": 8.6195,
+    "longitude": 0.8248,
+    "direct_beneficiaries": 300,
+    "indirect_beneficiaries": 1000
+  },
+  {
+    "project_title": "Bamboo planting around the Kanyosha River",
+    "country_province": "BUJUMBURA RURAL/KANYOSHA",
+    "latitude": -3.4309,
+    "longitude": 29.4063,
+    "direct_beneficiaries": 300,
+    "indirect_beneficiaries": 900
+  },
+  {
+    "project_title": "Environmental literacy Debate contest",
+    "country_province": "Zambia",
+    "latitude": -13.1339,
+    "longitude": 27.8493,
+    "direct_beneficiaries": 100,
+    "indirect_beneficiaries": 500
+  },
+  {
+    "project_title": "Climate Conversations",
+    "country_province": "Nairobi, Kenya",
+    "latitude": -1.2921,
+    "longitude": 36.8219,
+    "direct_beneficiaries": 90,
+    "indirect_beneficiaries": 150
+  },
+  {
+    "project_title": "Recycling wastes into charcoal briquettes",
+    "country_province": "U-RCA CREW",
+    "latitude": 1.3733,
+    "longitude": 32.2903,
+    "direct_beneficiaries": 80,
+    "indirect_beneficiaries": 500
+  },
+  {
+    "project_title": "Medicinal e Aromatic Garden for Native Stingless Bees",
+    "country_province": "Minas Gerais, Brazil",
+    "latitude": -17.9302,
+    "longitude": -43.7908,
+    "direct_beneficiaries": 50,
+    "indirect_beneficiaries": 150
+  },
+  {
+    "project_title": "COOPERATIVE SANGWE",
+    "country_province": "BURUNDI, MWARO",
+    "latitude": -3.5026,
+    "longitude": 29.6499,
+    "direct_beneficiaries": 130,
+    "indirect_beneficiaries": 800
+  },
+  {
+    "project_title": "Projet d'appui a la production des plants d'arbre a Acacia albida et Parkia biglobosa dans la commune urbaine de Segou",
+    "country_province": "Mali",
+    "latitude": 17.5707,
+    "longitude": -3.9962,
+    "direct_beneficiaries": 120,
+    "indirect_beneficiaries": 500
+  },
+  {
+    "project_title": "Quintal da Dita - Oficina de Saberes Indigenas (Indigenous Knowledge Workshop)",
+    "country_province": "Cascata, Águas da Prata (Brazil)",
+    "latitude": -21.8589,
+    "longitude": -46.6775,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Protection of Oil Destruction at Yasuni",
+    "country_province": "Yasuni, Ecuador",
+    "latitude": -0.6562,
+    "longitude": -76.0705,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Climate Justice for All in Togo (CJFAT)",
+    "country_province": "Lome (Togo)",
+    "latitude": 6.1296,
+    "longitude": 1.2197,
+    "direct_beneficiaries": 200,
+    "indirect_beneficiaries": 600
+  },
+  {
+    "project_title": "JOVENES PARTICIPANDO EN LA PROTECCION DE SABERES ANCESTRALES DE SISTEMAS ALIMENTARIOS Y DE AGUA DULCE DEL LAGO TITICACA",
+    "country_province": "Bolivia",
+    "latitude": -16.2902,
+    "longitude": -63.5887,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Projet Ankaramalaza Vert: Ensemble pour un Environnement Sain",
+    "country_province": "Madagascar",
+    "latitude": -18.7669,
+    "longitude": 46.8691,
+    "direct_beneficiaries": 600,
+    "indirect_beneficiaries": 5000
+  },
+  {
+    "project_title": "CHARCOAL WASTE TRANSFORMATION",
+    "country_province": "Togo",
+    "latitude": 8.6195,
+    "longitude": 0.8248,
+    "direct_beneficiaries": 80,
+    "indirect_beneficiaries": 600
+  },
+  {
+    "project_title": "Young Eco Champions for ensured climate future",
+    "country_province": "Cameroon",
+    "latitude": 7.3697,
+    "longitude": 12.3547,
+    "direct_beneficiaries": 500,
+    "indirect_beneficiaries": 1500
+  },
+  {
+    "project_title": "Make a Change with Sustainable Initiatives @ Bell School",
+    "country_province": "Chicago, IL, USA",
+    "latitude": 41.8781,
+    "longitude": -87.6298,
+    "direct_beneficiaries": 970,
+    "indirect_beneficiaries": 3000
+  },
+  {
+    "project_title": "Meliponary Bee Guardians",
+    "country_province": "Aguas da Prata",
+    "latitude": -21.9449,
+    "longitude": -46.7168,
+    "direct_beneficiaries": 50,
+    "indirect_beneficiaries": 200
+  },
+  {
+    "project_title": "Greening rural communities & food security in schools",
+    "country_province": "Rural Disabled Women Association (RUDIWA)",
+    "latitude": 1.3733,
+    "longitude": 32.2903,
+    "direct_beneficiaries": 50,
+    "indirect_beneficiaries": 193
+  },
+  {
+    "project_title": "Valorisation des dechets pour la production de Pasteque et attenuation au changement climatique en RD Congo",
+    "country_province": "IFA Yangambi (Institut Facultaire des Sciences Agronomiques de Yangambi)",
+    "latitude": 0.5228644921734148,
+    "longitude": 25.158771635951773,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "projet d'education environnementale a travers embelissement en milieu scolaire",
+    "country_province": "Togo region Maritime",
+    "latitude": 6.4914,
+    "longitude": 1.2891,
+    "direct_beneficiaries": 70,
+    "indirect_beneficiaries": 250
+  },
+  {
+    "project_title": "Community Based Tree planting riverbank management project",
+    "country_province": "Afode Environmental conservation crew",
+    "latitude": 1.3733,
+    "longitude": 32.2903,
+    "direct_beneficiaries": 200,
+    "indirect_beneficiaries": 1000
+  },
+  {
+    "project_title": "Beekeeping for environment Resilience",
+    "country_province": "Zimbabwe",
+    "latitude": -19.0154,
+    "longitude": 29.1549,
+    "direct_beneficiaries": 30,
+    "indirect_beneficiaries": 150
+  },
+  {
+    "project_title": "Empowering Communities through Sustainable Energy Access and Climate Education Initiatives",
+    "country_province": "Zambia",
+    "latitude": -13.1339,
+    "longitude": 27.8493,
+    "direct_beneficiaries": 100,
+    "indirect_beneficiaries": 500
+  },
+  {
+    "project_title": "LUBWA Health Center Cleaning and Donation Project",
+    "country_province": "Lusaka, Zambia",
+    "latitude": -15.4155,
+    "longitude": 28.2773,
+    "direct_beneficiaries": 50,
+    "indirect_beneficiaries": 500
+  },
+  {
+    "project_title": "Coastal Wetlands Restoration in Ibaji LGA",
+    "country_province": "Lagos, Nigeria",
+    "latitude": 6.5244,
+    "longitude": 3.3792,
+    "direct_beneficiaries": 500,
+    "indirect_beneficiaries": 2500
+  },
+  {
+    "project_title": "Earth Advocates: Building a Greener Future through School Clubs in Lira",
+    "country_province": "Lira district, Uganda",
+    "latitude": 2.2596,
+    "longitude": 32.8903,
+    "direct_beneficiaries": 50,
+    "indirect_beneficiaries": 150
+  },
+  {
+    "project_title": "Rural Youths Climate Action (RYCA)",
+    "country_province": "NAKURU, KENYA",
+    "latitude": -0.3031,
+    "longitude": 36.08,
+    "direct_beneficiaries": 100,
+    "indirect_beneficiaries": 350
+  },
+  {
+    "project_title": "Action in support of displaced persons in the north of Togo",
+    "country_province": "Action Environnement",
+    "latitude": 8.6195,
+    "longitude": 0.8248,
+    "direct_beneficiaries": 70,
+    "indirect_beneficiaries": 200
+  },
+  {
+    "project_title": "CLIMA SOM 2.0 (CLIMATE SOUND 2.0)",
+    "country_province": "Aguas da Prata",
+    "latitude": -21.9449,
+    "longitude": -46.7168,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Save Marine Drive Campaign: Combatting Plastic Pollution in Puri and Chilika",
+    "country_province": "Odisha, India",
+    "latitude": 20.2376,
+    "longitude": 84.27,
+    "direct_beneficiaries": 200,
+    "indirect_beneficiaries": 3000
+  },
+  {
+    "project_title": "Green Roots: Nurturing Guardians of Nature",
+    "country_province": "Kenya",
+    "latitude": -0.0236,
+    "longitude": 37.9062,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Bukavu ville Sans Dechets \"BVSD\"",
+    "country_province": "Sud-Kivu, DRC",
+    "latitude": -3.0117,
+    "longitude": 28.2994,
+    "direct_beneficiaries": 250,
+    "indirect_beneficiaries": 1300
+  },
+  {
+    "project_title": "Apicultura en la amazonia",
+    "country_province": "Ecuador, Napo, Tena",
+    "latitude": -0.9956,
+    "longitude": -77.813,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Community Gardens and Tree Planting to fight the drought.",
+    "country_province": "Copperbelt, Zambia",
+    "latitude": -13.057,
+    "longitude": 27.5496,
+    "direct_beneficiaries": 150,
+    "indirect_beneficiaries": 320
+  },
+  {
+    "project_title": "Reboisement et Restauration des Terres Degradees pour l'Attenuation du Changement Climatique au Burkina Faso",
+    "country_province": "Ouagadougou, BF",
+    "latitude": 12.3714,
+    "longitude": -1.5197,
+    "direct_beneficiaries": 120,
+    "indirect_beneficiaries": 2000
+  },
+  {
+    "project_title": "Scaling up Food Sovereignty of Chepang Indigenous Women and her families through revitalizing shifting cultivation and traditional customary practices",
+    "country_province": "Nepal",
+    "latitude": 28.3949,
+    "longitude": 84.124,
+    "direct_beneficiaries": 200,
+    "indirect_beneficiaries": 5500
+  },
+  {
+    "project_title": "EcoChange",
+    "country_province": "Kigali, Rwanda",
+    "latitude": -1.9441,
+    "longitude": 30.0619,
+    "direct_beneficiaries": 80,
+    "indirect_beneficiaries": 150
+  },
+  {
+    "project_title": "IAA Earth Guardian Champions Bamenda",
+    "country_province": "Northwest Region of Cameroon",
+    "latitude": 6.4704,
+    "longitude": 10.4397,
+    "direct_beneficiaries": 500,
+    "indirect_beneficiaries": 2500
+  },
+  {
+    "project_title": "Projet de gestion des dechets plastiques",
+    "country_province": "ONG Famille et Biodiversite pour l'Afrique (ONG FABA)",
+    "latitude": 7.9534123766214835,
+    "longitude": 2.235870396706943,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "RE-AFFORESTATION INITIATIVE IN UGANDA",
+    "country_province": "Uganda",
+    "latitude": 1.3733,
+    "longitude": 32.2903,
+    "direct_beneficiaries": 250,
+    "indirect_beneficiaries": 3500
+  },
+  {
+    "project_title": "CHILD nature",
+    "country_province": "Goma",
+    "latitude": -1.6585,
+    "longitude": 29.2205,
+    "direct_beneficiaries": 100,
+    "indirect_beneficiaries": 500
+  },
+  {
+    "project_title": "Promoting Sustainable Organic Farming for Safe Food and Healthy Soils",
+    "country_province": "Uganda",
+    "latitude": 1.3733,
+    "longitude": 32.2903,
+    "direct_beneficiaries": 400,
+    "indirect_beneficiaries": 950
+  },
+  {
+    "project_title": "BIRD-CONNECT India: Fostering Avian Conservation and Sustainable Tourism through Storytelling (FACTS)",
+    "country_province": "Odisha, India",
+    "latitude": 20.2376,
+    "longitude": 84.27,
+    "direct_beneficiaries": 600,
+    "indirect_beneficiaries": 2500
+  },
+  {
+    "project_title": "Initiative pour la Plantation d'Arbres dans les Champs Communautaires de Nyiragongo, RDC",
+    "country_province": "Goma, Republique Democratique du Congo",
+    "latitude": -1.6585,
+    "longitude": 29.2205,
+    "direct_beneficiaries": 500,
+    "indirect_beneficiaries": 2000
+  },
+  {
+    "project_title": "Plastic waste, an opportunity rather than a threat.",
+    "country_province": "Burundi",
+    "latitude": -3.3731,
+    "longitude": 29.9189,
+    "direct_beneficiaries": 180,
+    "indirect_beneficiaries": 800
+  },
+  {
+    "project_title": "TOLKOGN OU JARDINS DE QUARTIER",
+    "country_province": "Dakar, Senegal",
+    "latitude": 14.7167,
+    "longitude": -17.4677,
+    "direct_beneficiaries": 600,
+    "indirect_beneficiaries": 2500
+  },
+  {
+    "project_title": "Education environnementale des enfants de Bang Poore a Ouagadougou",
+    "country_province": "Burkina Faso",
+    "latitude": 12.2383,
+    "longitude": -1.5616,
+    "direct_beneficiaries": 600,
+    "indirect_beneficiaries": 2700
+  },
+  {
+    "project_title": "La terre, notre bateau commun",
+    "country_province": "Burkina Faso, province du Gourma",
+    "latitude": 12.1624,
+    "longitude": 0.6773,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Projet de Valorisation des Dechets Plastiques",
+    "country_province": "Kpalime, TOGO",
+    "latitude": 6.9098,
+    "longitude": 0.6299,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Creation de 24 espaces verts dans des ecoles primaires publiques dans la commune de Sakete",
+    "country_province": "Cooperative des femmes transformatrices des produits agricoles",
+    "latitude": 6.642857872751767,
+    "longitude": 2.713760869720534,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Mujeres rurales liderando soluciones climaticas",
+    "country_province": "El Salvador",
+    "latitude": 13.7942,
+    "longitude": -88.8965,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Empowering youth and kids in environmental action",
+    "country_province": "Geneva, Switzerland",
+    "latitude": 46.2044,
+    "longitude": 6.1432,
+    "direct_beneficiaries": 50,
+    "indirect_beneficiaries": 120
+  },
+  {
+    "project_title": "Estrategias de Turismo Sostenible para Transformar Zonas Mineras en Jatunyaku",
+    "country_province": "Federacion de las Organizaciones Indigenas de Napo (FOIN)",
+    "latitude": -0.9945975631938563,
+    "longitude": -77.81446504850011,
+    "direct_beneficiaries": 0,
+    "indirect_beneficiaries": 0
+  },
+  {
+    "project_title": "Community Door-to-Door Water Conservation Project",
+    "country_province": "Zambia",
+    "latitude": -13.1339,
+    "longitude": 27.8493,
+    "direct_beneficiaries": 500,
+    "indirect_beneficiaries": 1500
+  },
+  {
+    "project_title": "Trabajando la Conciencia ,el cuido, defensa y convivencia con la madre naturaleza",
+    "country_province": "Guatemala, Colomba, Quetzaltenango",
+    "latitude": 14.7077,
+    "longitude": -91.732,
+    "direct_beneficiaries": 200,
+    "indirect_beneficiaries": 1000
+  }
+]

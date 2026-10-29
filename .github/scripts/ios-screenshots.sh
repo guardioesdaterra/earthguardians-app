@@ -13,6 +13,7 @@ set -uo pipefail
 cd "$(dirname "$0")/../.." # repo root
 
 PKG="org.earthguardians.app"
+ONBOARDING_DIRECT_ROUTE="section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate"
 SHOTS="shots"
 LOG="$SHOTS/app-log.txt"
 SIM_APP="ios/build/sim/Build/Products/Debug-iphonesimulator/EarthGuardians.app"
@@ -71,6 +72,18 @@ shot() { # $1 = name
     || echo "[shots][ERROR] screenshot failed for $1"
 }
 
+# ── Cold-launch a direct page while first-run onboarding is still active ───────
+echo "[shots] screen 00-onboarding (first launch)"
+xcrun simctl terminate "$UDID" "$PKG" >/dev/null 2>&1 || true
+xcrun simctl launch "$UDID" "$PKG" -onboarding_complete 0 -eg_launch_route "$ONBOARDING_DIRECT_ROUTE" \
+  || { dump_app_log "app failed to launch into onboarding"; exit 1; }
+sleep 7
+if ! alive; then
+  dump_app_log "app process died during onboarding capture"
+  exit 1
+fi
+shot "00-onboarding"
+
 # Screens: name|launch route. Each screen is a fresh cold launch with the
 # route argument — deterministic, no dialogs, no leftover state.
 declare -a SCREENS=(
@@ -79,7 +92,7 @@ declare -a SCREENS=(
   "03-stories|stories"
   "04-maps|maps"
   "05-more|more"
-  "06-section-donate|section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate"
+  "06-section-nested-query|section?u=https://www.earthguardians.org/donate?source=ci&campaign=deeplink#ci-anchor"
 )
 
 for entry in "${SCREENS[@]}"; do

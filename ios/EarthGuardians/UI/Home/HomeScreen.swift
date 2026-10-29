@@ -20,11 +20,11 @@ struct HomeScreen: View {
             case .loading:
                 ScrollView {
                     VStack(spacing: 12) {
-                        ShimmerCard(height: 170)
-                        ShimmerCard()
-                        ShimmerCard()
+                        homeHero
+                        ShimmerCard(height: 170).padding(.horizontal, 20)
+                        ShimmerCard().padding(.horizontal, 20)
+                        ShimmerCard().padding(.horizontal, 20)
                     }
-                    .padding(20)
                     .padding(.top, 8)
                 }
                 .withHomeChrome(
@@ -35,13 +35,17 @@ struct HomeScreen: View {
 
             case .failed(let message):
                 ScrollView {
-                    FailedState(message: message) {
-                        Task {
-                            await graph.content.refreshFeed(force: true)
-                            await graph.content.refreshSitemap(force: true)
+                    VStack(spacing: 16) {
+                        homeHero
+                        FailedState(message: message) {
+                            Task {
+                                await graph.content.refreshFeed(force: true)
+                                await graph.content.refreshSitemap(force: true)
+                            }
                         }
+                        .padding(.top, 4)
                     }
-                    .padding(.top, 12)
+                    .padding(.top, 8)
                 }
                 .withHomeChrome(
                     navigateToTab: navigateToTab,
@@ -67,24 +71,13 @@ struct HomeScreen: View {
     private func readyList(_ feed: EgFeed, stale: Bool) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                homeHero
+
                 if stale {
                     HStack {
                         EgPill("offline · showing cached content", tone: .red)
                         Spacer()
                     }
-                }
-
-                // ── Mission hero ────────────────────────────────────────
-                GlassCard {
-                    EgPill("for youth · by youth", tone: .green)
-                    Text("“You can be the single drop of water that creates an enormous ripple effect.”")
-                        .font(.system(size: 22, weight: .bold))
-                        .kerning(-0.3)
-                        .foregroundColor(palette.onBackground)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Earth Guardians · youth-led since 1992")
-                        .font(.system(size: 13))
-                        .foregroundColor(palette.muted)
                 }
 
                 // ── Upcoming events carousel ────────────────────────────
@@ -183,6 +176,63 @@ struct HomeScreen: View {
             .padding(.top, 8)
         }
     }
+
+    private var homeHero: some View {
+        ZStack(alignment: .bottomLeading) {
+            Image(OfficialSiteImages.beninAction)
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity)
+                .frame(height: 300)
+                .clipped()
+                .opacity(0.46)
+
+            OfficialSitePhotoCollage(page: 1, opacity: 0.15)
+
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.24), .black.opacity(0.92)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("FOR YOUTH · BY YOUTH")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1.1)
+                    .foregroundColor(palette.eco)
+
+                Text("Join a global environmental community")
+                    .font(.system(size: 27, weight: .black))
+                    .kerning(-0.5)
+                    .foregroundColor(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("Your network of climate leaders, created for youth by youth.")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.88))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                EgPrimaryButton("Explore our story", tone: .green) {
+                    if let section = SiteCatalog.byPath("our-story") {
+                        openSection(section)
+                    }
+                }
+                .frame(maxWidth: 220, alignment: .leading)
+
+                Text("Photo · earthguardians.org")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.72))
+            }
+            .padding(20)
+        }
+        .frame(height: 300)
+        .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous)
+                .strokeBorder(palette.glassStroke, lineWidth: 1)
+        )
+        .padding(.horizontal, 20)
+    }
 }
 
 // MARK: - Shared chrome (header row)
@@ -196,15 +246,11 @@ private struct HomeChrome: ViewModifier {
     func body(content: Content) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                ZStack {
-                    Circle().fill(
-                        LinearGradient(colors: [palette.accent, palette.eco], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
-                    Text("EG")
-                        .font(.system(size: 15, weight: .black))
-                        .foregroundColor(.white)
-                }
-                .frame(width: 38, height: 38)
+                Image("EGBrandMark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 38, height: 38)
+                    .accessibilityHidden(true)
 
                 Text("EARTH GUARDIANS")
                     .font(.system(size: 12, weight: .bold))
