@@ -24,7 +24,7 @@ const navigation = [
 </script>
 
 <template>
-  <div class="app-shell">
+  <div class="app-shell" :class="{ 'app-shell--home': showHomeHeader }">
     <header v-if="showHomeHeader" class="app-header" aria-label="Earth Guardians">
       <NuxtLink class="brand" to="/" aria-label="Earth Guardians home">
         <img class="brand-mark" :src="logoSrc" alt="" width="38" height="38">

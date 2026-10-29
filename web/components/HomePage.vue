@@ -5,6 +5,16 @@ import { officialHomeFeedImage } from '../utils/officialHomeFeedImages'
 const { events, posts, status, stale, refreshing, error, refreshFeed } = useEgFeed()
 const config = useRuntimeConfig()
 const base = String(config.app.baseURL || '/').replace(/\/?$/, '/')
+const heroCollagePhotos = [
+  'eg_home_benin_action.jpg',
+  'eg_home_leaves.jpg',
+  'eg_home_fieldwork.jpg',
+  'eg_home_youth_gathering.jpg',
+  'eg_home_climate_action.jpg',
+  'eg_home_community.jpg',
+  'eg_home_benin_action.jpg',
+  'eg_home_leaves.jpg',
+]
 const featuredEvents = computed(() => events.value.slice(0, 8).map(event => {
   const localImage = officialHomeFeedImage('event', event.url, base)
   return {
@@ -44,6 +54,16 @@ useHead({ title: 'Home · Earth Guardians' })
   <div class="page-stack home-page">
     <section class="home-hero" aria-label="Earth Guardians mission">
       <img class="home-hero-photo" :src="`${base}official-home/eg_home_benin_action.jpg`" alt="Young Earth Guardians taking action in Benin" fetchpriority="high">
+      <div class="home-hero-collage" aria-hidden="true">
+        <img
+          v-for="(photo, index) in heroCollagePhotos"
+          :key="`${photo}-${index}`"
+          class="home-hero-collage-photo"
+          :class="`home-hero-collage-photo--${index}`"
+          :src="`${base}official-home/${photo}`"
+          alt=""
+        >
+      </div>
       <div class="home-hero-shade"></div>
       <div class="home-hero-copy">
         <span class="home-eyebrow">FOR YOUTH · BY YOUTH</span>
@@ -81,7 +101,7 @@ useHead({ title: 'Home · Earth Guardians' })
             <img v-if="post.homeImageUrl" :src="post.homeImageUrl" alt="" loading="lazy">
             <span v-else class="home-story-placeholder" aria-hidden="true"></span>
             <span class="home-story-copy"><strong>{{ post.title }}</strong><small>{{ displayDate(post.publishedAt) }}</small></span>
-            <span class="home-story-chevron" aria-hidden="true">›</span>
+            <span class="home-story-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.7 6.71a1 1 0 0 0-1.41 0z" /></svg></span>
           </NuxtLink>
         </div>
       </section>
