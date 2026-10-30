@@ -62,7 +62,7 @@
     }
   },
   "native_maps": {
-    "picker_options": ["Crews", "Project Grants"],
+    "picker_options": ["Crews", "Project Grants", "All Maps"],
     "public_grants_path": "project-grants",
     "private_manager_path": "eg-grants",
     "datasets": {

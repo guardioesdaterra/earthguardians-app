@@ -19,7 +19,7 @@ struct MapsScreen: View {
                 LargeTitle("Maps", subtitle: "Crews and projects caring for our shared home.")
                 EgSegmented(options: ["Native", "EG-Maps"], selection: $experience)
                 if experience == 0 {
-                    EgSegmented(options: ["Crews", "Project Grants"], selection: $selection)
+                    EgSegmented(options: ["Crews", "Project Grants", "All Maps"], selection: $selection)
                 }
             }
             .padding(.horizontal, 20)
@@ -36,11 +36,17 @@ struct MapsScreen: View {
                     focusedProject = project
                     selection = 1
                 }
-            } else {
+            } else if selection == 1 {
                 ProjectGrantsMapScreen(focusProject: focusedProject) { crew in
                     focusedCrew = crew
                     selection = 0
                 }
+            } else {
+                MapsHomeWebView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
             }
         }
         .background(palette.background.ignoresSafeArea())

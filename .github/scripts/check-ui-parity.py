@@ -476,7 +476,7 @@ def check_native_maps(matrix: dict) -> None:
     contract = matrix["native_maps"]
     picker_options = contract["picker_options"]
     experience_options = ["Native", "EG-Maps"]
-    expected_public_datasets = ["Crews", "Project Grants"]
+    expected_public_datasets = ["Crews", "Project Grants", "All Maps"]
     public_grants_path = contract["public_grants_path"]
     private_manager_path = contract["private_manager_path"]
     datasets = contract["datasets"]
@@ -484,7 +484,7 @@ def check_native_maps(matrix: dict) -> None:
     android_maps = read_text(ANDROID_MAPS)
     ios_maps = read_text(IOS_MAPS)
     require(picker_options == expected_public_datasets,
-            "native Maps contract must expose exactly the two public datasets: Crews and Project Grants")
+            "native Maps contract must expose exactly the three public views: Crews, Project Grants and All Maps")
     android_controls = re.findall(
         r"EgSegmentedControl\(\s*options\s*=\s*listOf\((.*?)\)", android_maps, re.DOTALL)
     ios_controls = re.findall(r"EgSegmented\(options:\s*\[(.*?)\]", ios_maps, re.DOTALL)
@@ -503,9 +503,9 @@ def check_native_maps(matrix: dict) -> None:
     android_dataset_options = re.findall(r'"([^"]+)"', android_controls[1])
     ios_dataset_options = re.findall(r'"([^"]+)"', ios_controls[1])
     require(android_dataset_options == picker_options,
-            "Android public map dataset picker must contain exactly Crews and Project Grants")
+            "Android public map dataset picker must contain exactly Crews, Project Grants and All Maps")
     require(ios_dataset_options == picker_options,
-            "iOS public map dataset picker must contain exactly Crews and Project Grants")
+            "iOS public map dataset picker must contain exactly Crews, Project Grants and All Maps")
 
     android_library = read_text(ANDROID_RESOURCE_LIBRARY)
     ios_library = read_text(IOS_RESOURCE_LIBRARY)
@@ -541,7 +541,7 @@ def check_native_maps(matrix: dict) -> None:
                 f"Android and iOS public {dataset} snapshots must stay in sync")
 
     require("if (tab == 0) MapMode.Crews else MapMode.Grants" in android_maps and
-            'options = listOf("Crews", "Project Grants")' in android_maps,
+            'options = listOf("Crews", "Project Grants", "All Maps")' in android_maps,
             "Android picker selections must switch between native crews and grant maps")
     require("if selection == 0" in ios_maps and
             re.search(r"CrewsMapScreen\(\s*focusCrew:\s*focusedCrew\s*\)\s*\{\s*project\s+in\s+focusedProject\s*=\s*project\s*selection\s*=\s*1\s*\}", ios_maps, re.DOTALL) and

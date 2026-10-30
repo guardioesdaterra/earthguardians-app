@@ -213,40 +213,49 @@ internal fun MapsScreen(
             )
         } else {
             EgSegmentedControl(
-                options = listOf("Crews", "Project Grants"),
+                options = listOf("Crews", "Project Grants", "All Maps"),
                 selectedIndex = tab,
                 onSelect = { tab = it; query = ""; selected = null },
                 modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
             )
-            when (val current = state) {
-                NativeMapsState.Loading -> LoadingMaps()
-                is NativeMapsState.Failed -> ErrorMaps(current.message)
-                is NativeMapsState.Ready -> {
-                    EgSearchField(
-                        value = query,
-                        onValueChange = { query = it; selected = null },
-                        placeholder = if (tab == 0) "Search crews, cities or regions" else "Search projects or places",
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                        onClear = { query = ""; selected = null },
-                    )
-                    NativeMapPanel(
-                        data = current.data,
-                        mode = if (tab == 0) MapMode.Crews else MapMode.Grants,
-                        query = query,
-                        selected = selected,
-                        onSelected = { selected = it },
-                        onFlyToProject = { grant ->
-                            tab = 1
-                            query = ""
-                            selected = MapSelection.Grant(grant)
-                        },
-                        onSelectNearbyCrew = { crew ->
-                            tab = 0
-                            query = ""
-                            selected = MapSelection.Crew(crew)
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
+            if (tab == 2) {
+                EGMapsHomeWebView(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                )
+            } else {
+                when (val current = state) {
+                    NativeMapsState.Loading -> LoadingMaps()
+                    is NativeMapsState.Failed -> ErrorMaps(current.message)
+                    is NativeMapsState.Ready -> {
+                        EgSearchField(
+                            value = query,
+                            onValueChange = { query = it; selected = null },
+                            placeholder = if (tab == 0) "Search crews, cities or regions" else "Search projects or places",
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                            onClear = { query = ""; selected = null },
+                        )
+                        NativeMapPanel(
+                            data = current.data,
+                            mode = if (tab == 0) MapMode.Crews else MapMode.Grants,
+                            query = query,
+                            selected = selected,
+                            onSelected = { selected = it },
+                            onFlyToProject = { grant ->
+                                tab = 1
+                                query = ""
+                                selected = MapSelection.Grant(grant)
+                            },
+                            onSelectNearbyCrew = { crew ->
+                                tab = 0
+                                query = ""
+                                selected = MapSelection.Crew(crew)
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
