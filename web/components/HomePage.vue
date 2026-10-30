@@ -69,8 +69,10 @@ useHead({ title: 'Home · Earth Guardians' })
         <span class="home-eyebrow">FOR YOUTH · BY YOUTH</span>
         <h1>Join a global environmental community</h1>
         <p>Your network of climate leaders, created for youth by youth.</p>
-        <NuxtLink class="home-cta" :to="sectionLink('our-story')">Explore our story</NuxtLink>
-        <span class="home-photo-credit">Photo · earthguardians.org</span>
+        <div class="home-cta-row">
+          <NuxtLink class="home-cta" :to="sectionLink('our-story')">Explore our story</NuxtLink>
+          <NuxtLink class="home-cta home-cta--secondary" :to="sectionLink('eg-resources')">Our Resources</NuxtLink>
+        </div>
       </div>
     </section>
 

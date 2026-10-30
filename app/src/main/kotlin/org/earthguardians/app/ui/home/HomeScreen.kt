@@ -132,6 +132,7 @@ internal fun HomeScreen(
             item {
                 HomeHero(
                     onExplore = { SiteCatalog.byPath("our-story")?.let(openSection) },
+                    onResources = { SiteCatalog.byPath("eg-resources")?.let(openSection) },
                 )
             }
 
@@ -315,7 +316,7 @@ internal fun HomeScreen(
 }
 
 @Composable
-private fun HomeHero(onExplore: () -> Unit) {
+private fun HomeHero(onExplore: () -> Unit, onResources: () -> Unit) {
     val palette = egPalette
     val shape = RoundedCornerShape(EgRadius.card)
     Box(
@@ -375,7 +376,7 @@ private fun HomeHero(onExplore: () -> Unit) {
                 lineHeight = 19.sp,
             )
             EgPrimaryButton(label = "Explore our story", tone = PillTone.Green, onClick = onExplore)
-            Text("Photo · earthguardians.org", color = Color.White.copy(alpha = 0.72f), fontSize = 10.sp)
+            EgPrimaryButton(label = "Our Resources", tone = PillTone.Neutral, onClick = onResources)
         }
     }
 }

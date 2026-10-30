@@ -459,12 +459,6 @@ private fun OnboardingArtwork(
                             ),
                         ),
                 )
-                Text(
-                    text = "Photo · earthguardians.org",
-                    color = Color.White.copy(alpha = 0.94f),
-                    fontSize = 10.sp,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
-                )
             }
         }
     }
@@ -519,12 +513,6 @@ private fun BoxScope.OnboardingGridArtwork() {
             .background(Color.Black.copy(alpha = 0.42f))
             .padding(horizontal = 10.dp, vertical = 7.dp),
     )
-    Text(
-        text = "Photos · earthguardians.org",
-        color = Color.White.copy(alpha = 0.94f),
-        fontSize = 10.sp,
-        modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
-    )
 }
 
 @Composable
@@ -576,12 +564,6 @@ private fun BoxScope.OnboardingOffsetArtwork(slide: OnboardingSlide) {
             .clip(RoundedCornerShape(EgRadius.pill))
             .background(Color.Black.copy(alpha = 0.52f))
             .padding(horizontal = 10.dp, vertical = 6.dp),
-    )
-    Text(
-        text = "Photo · earthguardians.org",
-        color = Color.White.copy(alpha = 0.84f),
-        fontSize = 9.sp,
-        modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 2.dp),
     )
 }
 

@@ -53,7 +53,6 @@ async function finish(askForAlerts: boolean) {
           <div v-if="step === 0" class="onboarding-photo-grid" aria-hidden="true"><img v-for="(photo, index) in photos.slice(0, 4)" :key="index" :src="`${base}official-home/${photo}`" alt=""></div>
           <div v-else-if="step === 2" class="onboarding-photo-band" aria-hidden="true"><img v-for="(photo, index) in [photos[2], photos[3], photos[4]]" :key="index" :src="`${base}official-home/${photo}`" alt=""></div>
           <div v-else-if="step === 3" class="onboarding-photo-strip" aria-hidden="true"><img v-for="(photo, index) in photos.slice(0, 3)" :key="index" :src="`${base}official-home/${photo}`" alt=""></div>
-          <div class="onboarding-photo-credit">Photo · earthguardians.org</div>
         </div>
         <div class="onboarding-copy">
           <h1>{{ current.title }}</h1>

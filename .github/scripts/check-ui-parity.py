@@ -325,7 +325,7 @@ def check_onboarding_photo_layouts(
     ios_slide_grid = source_section(
         ios, "private func gridArtwork(_ slide:", "private func standardArtwork(_ slide:", "iOS 2x2 slide photo grid")
     ios_offset = source_section(
-        ios, "private func offsetArtwork(_ slide:", "private var photoCredit", "iOS asymmetric photo band")
+        ios, "private func offsetArtwork(_ slide:", "private var onboardingBackdrop", "iOS asymmetric photo band")
     ios_grid_source = read_text(IOS_COLLAGE)
     ios_wallpaper_grid = source_section(
         ios_grid_source, "struct OfficialSitePhotoGrid: View", "struct OfficialSitePhotoCollage: View", "iOS wallpaper photo grid")

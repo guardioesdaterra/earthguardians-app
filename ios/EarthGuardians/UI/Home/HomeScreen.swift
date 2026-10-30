@@ -219,9 +219,12 @@ struct HomeScreen: View {
                 }
                 .frame(maxWidth: 220, alignment: .leading)
 
-                Text("Photo · earthguardians.org")
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.72))
+                EgPrimaryButton("Our Resources", tone: .neutral) {
+                    if let section = SiteCatalog.byPath("eg-resources") {
+                        openSection(section)
+                    }
+                }
+                .frame(maxWidth: 220, alignment: .leading)
             }
             .padding(20)
         }

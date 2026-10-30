@@ -250,10 +250,6 @@ struct OnboardingScreen: View {
                     Spacer()
                 }
                 Spacer()
-                HStack {
-                    Spacer()
-                    photoCredit
-                }
             }
             .padding(13)
         }
@@ -289,10 +285,6 @@ struct OnboardingScreen: View {
                     .padding(.vertical, 7)
                     .background(.black.opacity(0.42), in: Capsule())
                     Spacer()
-                    HStack {
-                        Spacer()
-                        photoCredit
-                    }
                 }
                 .padding(14)
             }
@@ -339,10 +331,6 @@ struct OnboardingScreen: View {
                         Spacer()
                     }
                     Spacer()
-                    HStack {
-                        Spacer()
-                        photoCredit
-                    }
                 }
                 .padding(13)
             }
@@ -353,12 +341,6 @@ struct OnboardingScreen: View {
         .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(slide.imageDescription)
-    }
-
-    private var photoCredit: some View {
-        Text("Photo · earthguardians.org")
-            .font(.system(size: 10))
-            .foregroundColor(.white.opacity(0.94))
     }
 
     @ViewBuilder
