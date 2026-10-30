@@ -17,9 +17,6 @@
     "icons": "node scripts/make-icons.mjs",
     "postinstall": "nuxi prepare"
   },
-  "dependencies": {
-    "maplibre-gl": "^6.16.0"
-  },
   "devDependencies": {
     "nuxt": "^3.15.4",
     "typescript": "^5.6.3",
