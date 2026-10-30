@@ -1,5 +1,5 @@
 // Earth Guardians web — Nuxt SSG for GitHub Pages.
-// MapLibre is loaded only on the Maps screen; map data remains bundled for offline use.
+// The Maps screen embeds the official EG-Maps app; no map library is bundled.
 const rawBase = process.env.NUXT_APP_BASE_URL || '/'
 const BASE = rawBase.endsWith('/') ? rawBase : `${rawBase}/`
 
@@ -47,7 +47,7 @@ export default defineNuxtConfig({
       ],
     },
   },
-  css: ['~/assets/css/main.css', 'maplibre-gl/dist/maplibre-gl.css'],
+  css: ['~/assets/css/main.css'],
   nitro: {
     prerender: {
       // All app pages are listed below; crawling query links can treat nested
