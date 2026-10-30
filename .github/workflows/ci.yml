@@ -402,6 +402,17 @@ jobs:
           # GITHUB_TOKEN is a context, not an ambient env var in raw steps.
           GITHUB_TOKEN: ${{ github.token }}
 
+      # Regenerating tests/fixtures/pwa-home/android-home-run-*.png (the PWA
+      # Home visual reference) needs the lossless screencap, not the summary
+      # JPG re-encode.
+      - name: Upload raw screencaps (PNG)
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-screenshots-png
+          path: shots/*.png
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Install Pillow (summary renderer)
         run: |
           python3 -m pip install --user --quiet pillow \
