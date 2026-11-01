@@ -494,7 +494,7 @@ private fun OnboardingShowcase(
         0 -> OnboardingMosaicShowcase(slide = slide, modifier = modifier)
         1 -> OnboardingFilmstripShowcase(
             slide = slide,
-            selected = filmstripImageIndex,
+            selectionIndex = filmstripImageIndex,
             onSelect = onFilmstripSelect,
             modifier = modifier,
         )
@@ -610,7 +610,7 @@ private fun OnboardingMosaicShowcase(
 @Composable
 private fun OnboardingFilmstripShowcase(
     slide: OnboardingSlide,
-    selected: Int,
+    selectionIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -619,7 +619,7 @@ private fun OnboardingFilmstripShowcase(
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OnboardingCaptionChip(
-            text = "FULL-BLEED PHOTO · ${selected + 1} / ${onboardingGridImages.size}",
+            text = "FULL-BLEED PHOTO · ${selectionIndex + 1} / ${onboardingGridImages.size}",
             pulse = true,
         )
         Row(
@@ -628,7 +628,7 @@ private fun OnboardingFilmstripShowcase(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             onboardingGridImages.forEachIndexed { index, photo ->
-                val isSelected = index == selected
+                val isSelected = index == selectionIndex
                 val width by animateDpAsState(
                     targetValue = if (isSelected) 72.dp else 44.dp,
                     animationSpec = tween(220),

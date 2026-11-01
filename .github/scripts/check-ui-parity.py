@@ -430,7 +430,7 @@ def check_onboarding_photo_layouts(
             "(mosaicSlots[0] + 1) % OfficialSiteImages.collage.count" in ios_mosaic,
             "iOS first-slide mosaic must invite tapping photos to cycle them")
 
-    require("FULL-BLEED PHOTO · ${selected + 1}" in android_filmstrip and
+    require("FULL-BLEED PHOTO · ${selectionIndex + 1}" in android_filmstrip and
             "onboardingGridImages.size" in android_filmstrip and
             "horizontalScroll" in android_filmstrip and
             "animateDpAsState(" in android_filmstrip,
