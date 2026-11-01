@@ -24,21 +24,16 @@
     },
     "home_hero_photo_alpha": 0.46,
     "photo_layouts": {
-      "grid_slide": 0,
-      "full_bleed_slide": 1,
-      "asymmetric_band_slide": 2,
-      "backdrop_grid": {
-        "rows": 5,
-        "columns": 3
-      },
-      "slide_grid": {
-        "rows": 2,
-        "columns": 2
-      },
-      "asymmetric_photo_count": 3,
+      "mosaic_slots": [0, 3, 4, 1],
+      "deck_photos": ["fieldwork", "youth_gathering", "community"],
+      "spotlight_row": ["leaves", "youth_gathering"],
+      "spotlight_banner": "climate_action",
+      "filmstrip_default_index": 1,
+      "pillar_pages": { "2": [3, 4, 2], "3": [5, 1, 0] },
+      "backdrop_grid": { "rows": 5, "columns": 3 },
       "progress_hit_area_dp": 36,
       "wallpaper_grid_opacity": 0.28,
-      "backdrop_collage_opacity": 0.10,
+      "pillar_wall_opacity": 0.1,
       "full_bleed_background_alpha": 0.65
     },
     "direct_page_argument": {

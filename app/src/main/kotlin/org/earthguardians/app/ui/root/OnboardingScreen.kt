@@ -7,14 +7,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -44,6 +49,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -64,16 +72,19 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 import org.earthguardians.app.graph.AppGraph
 import org.earthguardians.app.ui.common.OfficialSiteImages
-import org.earthguardians.app.ui.common.OfficialSitePhotoCollage
 import org.earthguardians.app.ui.design.EgPrimaryButton
 import org.earthguardians.app.ui.design.EgRadius
 import org.earthguardians.app.ui.design.PillTone
+import org.earthguardians.app.ui.design.egPressScale
+import org.earthguardians.app.ui.design.rememberPressInteraction
+import org.earthguardians.app.ui.design.rememberTapHaptic
 import org.earthguardians.app.ui.theme.LocalEGPalette
 
 /** Four swipeable onboarding steps grounded in the official homepage. */
@@ -121,6 +132,8 @@ private val slides = listOf(
     ),
 )
 
+// Six owner-approved homepage photos, in the documented catalog order:
+// community, benin action, leaves, fieldwork, youth gathering, climate action.
 private val onboardingGridImages = listOf(
     OfficialSiteImages.COMMUNITY,
     OfficialSiteImages.BENIN_ACTION,
@@ -142,6 +155,8 @@ internal fun OnboardingScreen(
     val currentPage by remember { derivedStateOf { pagerState.currentPage } }
     val isLastPage by remember { derivedStateOf { currentPage == slides.lastIndex } }
     var notificationsWanted by remember { mutableStateOf(true) }
+    // Slide 2's filmstrip live-edits the full-bleed backdrop; default photo = BENIN_ACTION.
+    var filmstripImageIndex by remember { mutableIntStateOf(1) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { }
@@ -160,7 +175,7 @@ internal fun OnboardingScreen(
             .fillMaxSize()
             .background(palette.background),
     ) {
-        OnboardingBackdrop(page = currentPage)
+        OnboardingBackdrop(page = currentPage, filmstripImageIndex = filmstripImageIndex)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -195,7 +210,12 @@ internal fun OnboardingScreen(
                         .padding(vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    OnboardingArtwork(page = page, slide = slide)
+                    OnboardingShowcase(
+                        page = page,
+                        slide = slide,
+                        filmstripImageIndex = filmstripImageIndex,
+                        onFilmstripSelect = { filmstripImageIndex = it },
+                    )
                     Text(
                         text = slide.title,
                         color = palette.onBackground,
@@ -331,8 +351,12 @@ internal fun OnboardingScreen(
     }
 }
 
+/** Per-page backdrop treatments: wallpaper grid, live full-bleed photo, calm pillar wall. */
 @Composable
-private fun OnboardingBackdrop(page: Int) {
+private fun OnboardingBackdrop(
+    page: Int,
+    filmstripImageIndex: Int,
+) {
     val palette = LocalEGPalette.current
     Crossfade(
         targetState = page,
@@ -342,17 +366,12 @@ private fun OnboardingBackdrop(page: Int) {
         Box(modifier = Modifier.fillMaxSize().background(palette.background)) {
             when (backgroundPage) {
                 0 -> OnboardingPhotoGrid(modifier = Modifier.fillMaxSize(), opacity = 0.28f)
-                1 -> Image(
-                    painter = painterResource(OfficialSiteImages.BENIN_ACTION),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 0.65f },
-                )
-                else -> OfficialSitePhotoCollage(
-                    page = backgroundPage,
+                1 -> OnboardingFullBleed(
+                    photo = onboardingGridImages[filmstripImageIndex],
+                    opacity = 0.65f,
                     modifier = Modifier.fillMaxSize(),
-                    opacity = 0.10f,
                 )
+                else -> OnboardingPillarWall(page = backgroundPage, opacity = 0.10f)
             }
             val topScrim = when (backgroundPage) {
                 0 -> 0.55f
@@ -400,10 +419,7 @@ private fun OnboardingPhotoGrid(
                             .weight(1f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(18.dp))
-                            .graphicsLayer {
-                                alpha = opacity
-                                rotationZ = if ((row + column) % 2 == 0) -1.5f else 1.5f
-                            },
+                            .graphicsLayer { alpha = opacity },
                     )
                 }
             }
@@ -411,160 +427,419 @@ private fun OnboardingPhotoGrid(
     }
 }
 
+/** Pillar-wall photo sets for the calm backdrop pages, in catalog indexes. */
+private fun onboardingPillarIndexes(page: Int): List<Int> = when (page) {
+    2 -> listOf(3, 4, 2)
+    3 -> listOf(5, 1, 0)
+    else -> listOf(0, 1, 3)
+}
+
+/** Side-by-side vertical photo pillars — a wallpaper with zero overlapping photos. */
 @Composable
-private fun OnboardingArtwork(
+private fun OnboardingPillarWall(
+    page: Int,
+    opacity: Float,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.clipToBounds(),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        onboardingPillarIndexes(page).forEachIndexed { index, photo ->
+            Image(
+                painter = painterResource(onboardingGridImages[photo]),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .weight(if (index == 1) 1.15f else 1f)
+                    .fillMaxHeight()
+                    .graphicsLayer { alpha = opacity },
+            )
+        }
+    }
+}
+
+/** The filmstrip-controlled full-screen photo backdrop for the action slide. */
+@Composable
+private fun OnboardingFullBleed(
+    photo: Int,
+    opacity: Float,
+    modifier: Modifier = Modifier,
+) {
+    Crossfade(
+        targetState = photo,
+        animationSpec = tween(320),
+        label = "onboardingFullBleed",
+        modifier = modifier,
+    ) { current ->
+        Image(
+            painter = painterResource(current),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().graphicsLayer { alpha = opacity },
+        )
+    }
+}
+
+/** Each slide gets its own image-showcase component type — never a repeated rectangle. */
+@Composable
+private fun OnboardingShowcase(
     page: Int,
     slide: OnboardingSlide,
+    filmstripImageIndex: Int,
+    onFilmstripSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (page) {
+        0 -> OnboardingMosaicShowcase(slide = slide, modifier = modifier)
+        1 -> OnboardingFilmstripShowcase(
+            slide = slide,
+            selected = filmstripImageIndex,
+            onSelect = onFilmstripSelect,
+            modifier = modifier,
+        )
+        2 -> OnboardingFeatureDeckShowcase(slide = slide, modifier = modifier)
+        else -> OnboardingSpotlightShowcase(slide = slide, modifier = modifier)
+    }
+}
+
+/** Small glass status chip above every showcase; pulse = the view is live/interactive. */
+@Composable
+private fun OnboardingCaptionChip(
+    text: String,
+    pulse: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     val palette = LocalEGPalette.current
-    if (page == 1) {
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(EgRadius.pill))
-                .background(palette.glass.copy(alpha = 0.82f))
-                .padding(horizontal = 12.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-        ) {
-            Icon(slide.icon, contentDescription = null, tint = palette.eco, modifier = Modifier.size(15.dp))
-            Text("FULL-BLEED PHOTO · EARTH GUARDIANS", color = palette.onBackground, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
-        }
-        return
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(184.dp)
-            .clip(RoundedCornerShape(EgRadius.card))
-            .background(palette.glass)
-            .semantics { contentDescription = slide.imageDescription },
+    val transition = rememberInfiniteTransition(label = "onboardingChipPulse")
+    val dotAlpha by transition.animateFloat(
+        initialValue = if (pulse) 0.25f else 1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(820), RepeatMode.Reverse),
+        label = "onboardingChipDotAlpha",
+    )
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(EgRadius.pill))
+            .background(palette.glass.copy(alpha = 0.82f))
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        when (page) {
-            0 -> OnboardingGridArtwork()
-            2 -> OnboardingOffsetArtwork(slide = slide)
-            else -> {
-                Image(
-                    painter = painterResource(slide.imageRes),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(palette.eco)
+                .graphicsLayer { alpha = dotAlpha },
+        )
+        Text(
+            text = text,
+            color = palette.onBackground,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.6.sp,
+        )
+    }
+}
+
+/** Slide 1 — a bento mosaic of four photos in different shapes; tap any tile to cycle it. */
+@Composable
+private fun OnboardingMosaicShowcase(
+    slide: OnboardingSlide,
+    modifier: Modifier = Modifier,
+) {
+    val tapHaptic = rememberTapHaptic()
+    val mosaicSlots = remember { mutableStateListOf(0, 3, 4, 1) }
+
+    Column(
+        modifier = modifier.semantics { contentDescription = slide.imageDescription },
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OnboardingCaptionChip(text = "A GLOBAL COMMUNITY · TAP ANY PHOTO")
+        Row(
+            modifier = Modifier.fillMaxWidth().height(114.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OnboardingTile(
+                res = onboardingGridImages[mosaicSlots[0]],
+                cornerRadius = 24.dp,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    mosaicSlots[0] = (mosaicSlots[0] + 1) % onboardingGridImages.size
+                    tapHaptic()
+                },
+            )
+            OnboardingTile(
+                res = onboardingGridImages[mosaicSlots[1]],
+                cornerRadius = 18.dp,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    mosaicSlots[1] = (mosaicSlots[1] + 1) % onboardingGridImages.size
+                    tapHaptic()
+                },
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().height(58.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OnboardingTile(
+                res = onboardingGridImages[mosaicSlots[2]],
+                cornerRadius = 29.dp,
+                modifier = Modifier.size(58.dp),
+                onClick = {
+                    mosaicSlots[2] = (mosaicSlots[2] + 1) % onboardingGridImages.size
+                    tapHaptic()
+                },
+            )
+            OnboardingTile(
+                res = onboardingGridImages[mosaicSlots[3]],
+                cornerRadius = 29.dp,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    mosaicSlots[3] = (mosaicSlots[3] + 1) % onboardingGridImages.size
+                    tapHaptic()
+                },
+            )
+        }
+    }
+}
+
+/** Slide 2 — a filmstrip selector that live-swaps the full-bleed photo behind the copy. */
+@Composable
+private fun OnboardingFilmstripShowcase(
+    slide: OnboardingSlide,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalEGPalette.current
+    val tapHaptic = rememberTapHaptic()
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OnboardingCaptionChip(
+            text = "FULL-BLEED PHOTO · ${selected + 1} / ${onboardingGridImages.size}",
+            pulse = true,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            onboardingGridImages.forEachIndexed { index, photo ->
+                val isSelected = index == selected
+                val width by animateDpAsState(
+                    targetValue = if (isSelected) 72.dp else 44.dp,
+                    animationSpec = tween(220),
+                    label = "onboardingStripWidth$index",
+                )
+                val height by animateDpAsState(
+                    targetValue = if (isSelected) 56.dp else 44.dp,
+                    animationSpec = tween(220),
+                    label = "onboardingStripHeight$index",
+                )
+                val corner by animateDpAsState(
+                    targetValue = if (isSelected) 18.dp else 22.dp,
+                    animationSpec = tween(220),
+                    label = "onboardingStripCorner$index",
                 )
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Black.copy(alpha = 0.12f), Color.Transparent, Color.Black.copy(alpha = 0.52f)),
-                            ),
-                        ),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BoxScope.OnboardingGridArtwork() {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(3.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        repeat(2) { row ->
-            Row(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                repeat(2) { column ->
-                    val imageIndex = row * 2 + column
-                    Image(
-                        painter = painterResource(onboardingGridImages[imageIndex]),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(18.dp))
-                            .graphicsLayer { alpha = 0.76f },
+                        .size(width = width, height = height)
+                        .semantics {
+                            contentDescription = "Photo ${index + 1} of ${onboardingGridImages.size}"
+                            selected = isSelected
+                            role = Role.Button
+                        },
+                ) {
+                    OnboardingTile(
+                        res = photo,
+                        cornerRadius = corner,
+                        borderWidth = if (isSelected) 2.dp else 1.dp,
+                        borderColor = if (isSelected) palette.eco else Color.White.copy(alpha = 0.35f),
+                        modifier = Modifier.fillMaxSize(),
+                        onClick = {
+                            onSelect(index)
+                            tapHaptic()
+                        },
                     )
                 }
             }
         }
     }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.Black.copy(alpha = 0.08f), Color.Transparent, Color.Black.copy(alpha = 0.52f)),
-                ),
-            ),
-    )
-    Text(
-        text = "A GLOBAL COMMUNITY · 1 / ${slides.size}",
-        color = Color.White,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 0.6.sp,
-        modifier = Modifier
-            .align(Alignment.TopStart)
-            .padding(13.dp)
-            .clip(RoundedCornerShape(EgRadius.pill))
-            .background(Color.Black.copy(alpha = 0.42f))
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-    )
 }
 
+/** Slide 3 — a featured photo viewer plus three circular thumbnails to swap it with. */
 @Composable
-private fun BoxScope.OnboardingOffsetArtwork(slide: OnboardingSlide) {
-    Image(
-        painter = painterResource(slide.imageRes),
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .align(Alignment.BottomStart)
-            .padding(start = 8.dp, bottom = 7.dp)
-            .fillMaxWidth(0.72f)
-            .height(154.dp)
-            .clip(RoundedCornerShape(22.dp)),
-    )
-    Image(
-        painter = painterResource(OfficialSiteImages.YOUTH_GATHERING),
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .align(Alignment.TopEnd)
-            .padding(top = 10.dp, end = 9.dp)
-            .fillMaxWidth(0.48f)
-            .height(106.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .graphicsLayer { rotationZ = 3f },
-    )
-    Image(
-        painter = painterResource(OfficialSiteImages.LEAVES),
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(end = 11.dp, bottom = 8.dp)
-            .width(92.dp)
-            .height(68.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .graphicsLayer { rotationZ = -4f },
-    )
-    Text(
-        text = "FIELD NOTES",
-        color = Color.White,
-        fontSize = 9.sp,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 0.8.sp,
-        modifier = Modifier
-            .align(Alignment.TopStart)
-            .padding(14.dp)
-            .clip(RoundedCornerShape(EgRadius.pill))
-            .background(Color.Black.copy(alpha = 0.52f))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-    )
+private fun OnboardingFeatureDeckShowcase(
+    slide: OnboardingSlide,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalEGPalette.current
+    val tapHaptic = rememberTapHaptic()
+    val deckPhotos = listOf(slide.imageRes, OfficialSiteImages.YOUTH_GATHERING, OfficialSiteImages.COMMUNITY)
+    var deckIndex by remember { mutableIntStateOf(0) }
+
+    Column(
+        modifier = modifier.semantics { contentDescription = slide.imageDescription },
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        OnboardingCaptionChip(text = "FIELD NOTES · LOCAL ACTION")
+        OnboardingTile(
+            res = deckPhotos[deckIndex],
+            cornerRadius = 26.dp,
+            gradientOverlay = true,
+            modifier = Modifier.fillMaxWidth().height(128.dp),
+            onClick = {
+                deckIndex = (deckIndex + 1) % deckPhotos.size
+                tapHaptic()
+            },
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            deckPhotos.forEachIndexed { index, photo ->
+                val isSelected = index == deckIndex
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .semantics {
+                            contentDescription = "Show photo ${index + 1} of ${deckPhotos.size}"
+                            selected = isSelected
+                            role = Role.Button
+                        },
+                ) {
+                    OnboardingTile(
+                        res = photo,
+                        cornerRadius = 22.dp,
+                        borderWidth = if (isSelected) 2.dp else 1.dp,
+                        borderColor = if (isSelected) palette.eco else Color.White.copy(alpha = 0.35f),
+                        modifier = Modifier.fillMaxSize(),
+                        onClick = {
+                            deckIndex = index
+                            tapHaptic()
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Slide 4 — a wide cinematic banner with a square accent and a full-pill photo beside it. */
+@Composable
+private fun OnboardingSpotlightShowcase(
+    slide: OnboardingSlide,
+    modifier: Modifier = Modifier,
+) {
+    val tapHaptic = rememberTapHaptic()
+    var spotlightBanner by remember { mutableIntStateOf(5) }
+    var spotlightSquare by remember { mutableIntStateOf(2) }
+    var spotlightPill by remember { mutableIntStateOf(4) }
+
+    Column(
+        modifier = modifier.semantics { contentDescription = slide.imageDescription },
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        OnboardingCaptionChip(text = "STAY IN THE LOOP", pulse = true)
+        OnboardingTile(
+            res = onboardingGridImages[spotlightBanner],
+            cornerRadius = 28.dp,
+            gradientOverlay = true,
+            modifier = Modifier.fillMaxWidth().height(140.dp),
+            onClick = {
+                spotlightBanner = (spotlightBanner + 1) % onboardingGridImages.size
+                tapHaptic()
+            },
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OnboardingTile(
+                res = onboardingGridImages[spotlightSquare],
+                cornerRadius = 14.dp,
+                modifier = Modifier.size(56.dp),
+                onClick = {
+                    spotlightSquare = (spotlightSquare + 1) % onboardingGridImages.size
+                    tapHaptic()
+                },
+            )
+            OnboardingTile(
+                res = onboardingGridImages[spotlightPill],
+                cornerRadius = 28.dp,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    spotlightPill = (spotlightPill + 1) % onboardingGridImages.size
+                    tapHaptic()
+                },
+            )
+        }
+    }
+}
+
+/**
+ * One pressable, crossfading photo tile with iOS-style hairline and springy press scale.
+ * Every foreground photo in onboarding renders through this tile — never stacked, never rotated.
+ */
+@Composable
+private fun OnboardingTile(
+    res: Int,
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = EgRadius.tile,
+    borderWidth: Dp = 1.dp,
+    borderColor: Color = Color.White.copy(alpha = 0.35f),
+    gradientOverlay: Boolean = false,
+    onClick: (() -> Unit)? = null,
+) {
+    val interaction = rememberPressInteraction()
+    val shape = RoundedCornerShape(cornerRadius)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .border(borderWidth, borderColor, shape)
+            .then(
+                when {
+                    onClick != null ->
+                        Modifier.clickable(interactionSource = interaction, indication = null) {
+                            onClick()
+                        }
+                    else -> Modifier
+                },
+            )
+            .egPressScale(interaction),
+    ) {
+        Crossfade(
+            targetState = res,
+            animationSpec = tween(300),
+            label = "onboardingTilePhoto",
+        ) { current ->
+            Image(
+                painter = painterResource(current),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        if (gradientOverlay) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Black.copy(alpha = 0.08f),
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.40f),
+                            ),
+                        ),
+                    ),
+            )
+        }
+    }
 }
 
 /** Exposed for tests — what the four onboarding slides promise. */

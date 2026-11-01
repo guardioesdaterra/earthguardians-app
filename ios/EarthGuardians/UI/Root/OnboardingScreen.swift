@@ -56,6 +56,13 @@ struct OnboardingScreen: View {
     private let onFinished: () -> Void
     @State private var page = 0
     @State private var notificationsWanted = true
+    // Slide 2's filmstrip live-edits the full-bleed backdrop; default photo = benin action.
+    @State private var filmstripIndex = 1
+    @State private var mosaicSlots: [Int] = [0, 3, 4, 1]
+    @State private var deckIndex = 0
+    @State private var spotlightBannerIndex = 5
+    @State private var spotlightSquareIndex = 2
+    @State private var spotlightPillIndex = 4
 
     init(onFinished: @escaping () -> Void) {
         self.onFinished = onFinished
@@ -150,22 +157,7 @@ struct OnboardingScreen: View {
     @ViewBuilder
     private func slideView(_ slide: OnboardingSlide) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            if slide.id == 1 {
-                HStack(spacing: 7) {
-                    Image(systemName: slide.systemImage)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(palette.eco)
-                    Text("FULL-BLEED PHOTO · EARTH GUARDIANS")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(0.5)
-                        .foregroundColor(palette.onBackground)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(palette.glass.opacity(0.82), in: Capsule())
-            } else {
-                slideArtwork(slide)
-            }
+            slideArtwork(slide)
 
             Text(slide.title)
                 .font(.system(size: 32, weight: .black))
@@ -204,143 +196,213 @@ struct OnboardingScreen: View {
         .padding(.vertical, 12)
     }
 
+    /// Each slide gets its own image-showcase component type — never a repeated rectangle.
     @ViewBuilder
     private func slideArtwork(_ slide: OnboardingSlide) -> some View {
         switch slide.id {
         case 0:
-            gridArtwork(slide)
+            mosaicArtwork(slide)
+        case 1:
+            filmstripArtwork
         case 2:
-            offsetArtwork(slide)
+            deckArtwork(slide)
         default:
-            standardArtwork(slide)
+            spotlightArtwork(slide)
         }
     }
 
-    private func gridArtwork(_ slide: OnboardingSlide) -> some View {
-        ZStack(alignment: .topLeading) {
-            VStack(spacing: 3) {
-                ForEach(0..<2, id: \.self) { row in
-                    HStack(spacing: 3) {
-                        ForEach(0..<2, id: \.self) { column in
-                            let index = (row * 2 + column) % OfficialSiteImages.collage.count
-                            Image(OfficialSiteImages.collage[index])
-                                .resizable()
-                                .scaledToFill()
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 90)
-                                .clipped()
+    /// Slide 1 — a bento mosaic of four photos in different shapes; tap any tile to cycle it.
+    @ViewBuilder
+    private func mosaicArtwork(_ slide: OnboardingSlide) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            captionChip("A GLOBAL COMMUNITY · TAP ANY PHOTO")
+            HStack(spacing: 8) {
+                photoTile(OfficialSiteImages.collage[mosaicSlots[0]], cornerRadius: 24) {
+                    mosaicSlots[0] = (mosaicSlots[0] + 1) % OfficialSiteImages.collage.count
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 114)
+                photoTile(OfficialSiteImages.collage[mosaicSlots[1]], cornerRadius: 18) {
+                    mosaicSlots[1] = (mosaicSlots[1] + 1) % OfficialSiteImages.collage.count
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 114)
+            }
+            HStack(spacing: 8) {
+                photoTile(OfficialSiteImages.collage[mosaicSlots[2]], cornerRadius: 29) {
+                    mosaicSlots[2] = (mosaicSlots[2] + 1) % OfficialSiteImages.collage.count
+                }
+                .frame(width: 58, height: 58)
+                photoTile(OfficialSiteImages.collage[mosaicSlots[3]], cornerRadius: 29) {
+                    mosaicSlots[3] = (mosaicSlots[3] + 1) % OfficialSiteImages.collage.count
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 58)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(slide.imageDescription)
+    }
+
+    /// Slide 2 — a filmstrip selector that live-swaps the full-bleed photo behind the copy.
+    private var filmstripArtwork: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            captionChip(
+                "FULL-BLEED PHOTO · \(filmstripIndex + 1) / \(OfficialSiteImages.collage.count)",
+                pulse: true
+            )
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(0..<OfficialSiteImages.collage.count, id: \.self) { index in
+                        let isSelected = index == filmstripIndex
+                        photoTile(
+                            OfficialSiteImages.collage[index],
+                            cornerRadius: isSelected ? 18 : 22,
+                            borderWidth: isSelected ? 2 : 1,
+                            borderColor: isSelected ? palette.eco : Color.white.opacity(0.35)
+                        ) {
+                            filmstripIndex = index
                         }
+                        .frame(width: isSelected ? 72 : 44, height: isSelected ? 56 : 44)
+                        .accessibilityLabel("Photo \(index + 1) of \(OfficialSiteImages.collage.count)")
                     }
                 }
+                .padding(.vertical, 1)
+                .animation(.easeOut(duration: 0.22), value: filmstripIndex)
             }
-            LinearGradient(
-                colors: [.black.opacity(0.08), .clear, .black.opacity(0.52)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            VStack {
-                HStack {
-                    Text("A GLOBAL COMMUNITY · 1 / \(slides.count)")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(0.6)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(.black.opacity(0.42), in: Capsule())
-                    Spacer()
+        }
+    }
+
+    /// Slide 3 — a featured photo viewer plus three circular thumbnails to swap it with.
+    @ViewBuilder
+    private func deckArtwork(_ slide: OnboardingSlide) -> some View {
+        let deckPhotos = [slide.imageName, OfficialSiteImages.youthGathering, OfficialSiteImages.community]
+        VStack(alignment: .leading, spacing: 10) {
+            captionChip("FIELD NOTES · LOCAL ACTION")
+            photoTile(deckPhotos[deckIndex], cornerRadius: 26, gradientOverlay: true) {
+                deckIndex = (deckIndex + 1) % deckPhotos.count
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 128)
+            .accessibilityLabel(slide.imageDescription)
+            HStack(spacing: 12) {
+                ForEach(deckPhotos.indices, id: \.self) { index in
+                    let isSelected = index == deckIndex
+                    photoTile(
+                        deckPhotos[index],
+                        cornerRadius: 22,
+                        borderWidth: isSelected ? 2 : 1,
+                        borderColor: isSelected ? palette.eco : Color.white.opacity(0.35)
+                    ) {
+                        deckIndex = index
+                    }
+                    .frame(width: 44, height: 44)
+                    .accessibilityLabel("Show photo \(index + 1) of \(deckPhotos.count)")
                 }
                 Spacer()
             }
-            .padding(13)
         }
-        .frame(height: 184)
-        .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(slide.imageDescription)
     }
 
-    private func standardArtwork(_ slide: OnboardingSlide) -> some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .topLeading) {
-                Image(slide.imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
-                LinearGradient(
-                    colors: [.black.opacity(0.12), .clear, .black.opacity(0.58)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                VStack {
-                    HStack(spacing: 7) {
-                        Image(systemName: slide.systemImage)
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("\(slide.id + 1) / \(slides.count) · EARTH GUARDIANS")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(0.7)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 7)
-                    .background(.black.opacity(0.42), in: Capsule())
-                    Spacer()
-                }
-                .padding(14)
+    /// Slide 4 — a wide cinematic banner with a square accent and a full-pill photo beside it.
+    @ViewBuilder
+    private func spotlightArtwork(_ slide: OnboardingSlide) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            captionChip("STAY IN THE LOOP", pulse: true)
+            photoTile(OfficialSiteImages.collage[spotlightBannerIndex], cornerRadius: 28, gradientOverlay: true) {
+                spotlightBannerIndex = (spotlightBannerIndex + 1) % OfficialSiteImages.collage.count
             }
-            .frame(width: geometry.size.width, height: geometry.size.height)
+            .frame(maxWidth: .infinity)
+            .frame(height: 140)
+            HStack(spacing: 8) {
+                photoTile(OfficialSiteImages.collage[spotlightSquareIndex], cornerRadius: 14) {
+                    spotlightSquareIndex = (spotlightSquareIndex + 1) % OfficialSiteImages.collage.count
+                }
+                .frame(width: 56, height: 56)
+                photoTile(OfficialSiteImages.collage[spotlightPillIndex], cornerRadius: 28) {
+                    spotlightPillIndex = (spotlightPillIndex + 1) % OfficialSiteImages.collage.count
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+            }
         }
-        .frame(height: 184)
-        .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(slide.imageDescription)
     }
 
-    private func offsetArtwork(_ slide: OnboardingSlide) -> some View {
-        GeometryReader { geometry in
+    /// Small glass status chip above every showcase; pulse = the view is live/interactive.
+    private func captionChip(_ text: String, pulse: Bool = false) -> some View {
+        HStack(spacing: 7) {
+            if pulse {
+                PulseDot()
+            } else {
+                Circle()
+                    .fill(palette.eco)
+                    .frame(width: 6, height: 6)
+            }
+            Text(text)
+                .font(.system(size: 10, weight: .bold))
+                .tracking(0.6)
+                .foregroundColor(palette.onBackground)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(palette.glass.opacity(0.82), in: Capsule())
+    }
+
+    private struct PulseDot: View {
+        @Environment(\.egPalette) private var palette
+        @State private var pulsing = false
+
+        var body: some View {
+            Circle()
+                .fill(palette.eco)
+                .frame(width: 6, height: 6)
+                .opacity(pulsing ? 1 : 0.25)
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 0.82).repeatForever(autoreverses: true)) {
+                        pulsing.toggle()
+                    }
+                }
+        }
+    }
+
+    /// One pressable, crossfading photo tile with an iOS-style hairline and press feedback.
+    /// Every foreground photo in onboarding renders through this tile — no stacking, no rotation.
+    private func photoTile(
+        _ asset: String,
+        cornerRadius: CGFloat = 20,
+        borderWidth: CGFloat = 1,
+        borderColor: Color = Color.white.opacity(0.35),
+        gradientOverlay: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            UIC.feedback()
+            action()
+        } label: {
             ZStack {
-                Image(slide.imageName)
+                Image(asset)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: geometry.size.width * 0.72, height: 154)
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    .position(x: geometry.size.width * 0.37, y: geometry.size.height * 0.54)
-                Image(OfficialSiteImages.youthGathering)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: geometry.size.width * 0.44, height: 104)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .rotationEffect(.degrees(3))
-                    .position(x: geometry.size.width * 0.77, y: 61)
-                Image(OfficialSiteImages.leaves)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 92, height: 68)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .rotationEffect(.degrees(-4))
-                    .position(x: geometry.size.width - 56, y: geometry.size.height - 42)
-                VStack {
-                    HStack {
-                        Text("FIELD NOTES")
-                            .font(.system(size: 9, weight: .bold))
-                            .tracking(0.8)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(.black.opacity(0.52), in: Capsule())
-                        Spacer()
-                    }
-                    Spacer()
+                    .id(asset)
+                    .transition(.opacity)
+                if gradientOverlay {
+                    LinearGradient(
+                        colors: [.black.opacity(0.08), .clear, .black.opacity(0.40)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 }
-                .padding(13)
             }
-            .frame(width: geometry.size.width, height: geometry.size.height)
-            .clipped()
+            .animation(.easeInOut(duration: 0.3), value: asset)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(borderColor, lineWidth: borderWidth)
+            )
         }
-        .frame(height: 184)
-        .clipShape(RoundedRectangle(cornerRadius: EGRadius.card, style: .continuous))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(slide.imageDescription)
+        .buttonStyle(PressableStyle())
     }
 
     @ViewBuilder
@@ -354,26 +416,60 @@ struct OnboardingScreen: View {
                     .ignoresSafeArea()
             case 1:
                 GeometryReader { geometry in
-                    Image(slides[1].imageName)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                        .opacity(0.65)
-                    LinearGradient(
-                        colors: [palette.background.opacity(0.62), palette.background.opacity(0.82)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+                    ZStack {
+                        Image(OfficialSiteImages.collage[filmstripIndex])
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .clipped()
+                            .opacity(0.65)
+                            .id(filmstripIndex)
+                            .transition(.opacity)
+                        LinearGradient(
+                            colors: [palette.background.opacity(0.62), palette.background.opacity(0.82)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+                    .animation(.easeInOut(duration: 0.32), value: filmstripIndex)
                 }
                 .ignoresSafeArea()
             default:
-                OfficialSitePhotoCollage(page: page, opacity: 0.10)
+                pillarWall(page: page, opacity: 0.10)
                     .overlay(palette.background.opacity(0.48))
                     .ignoresSafeArea()
             }
         }
         .animation(.easeInOut(duration: 0.32), value: page)
+    }
+
+    /// Pillar-wall photo sets for the calm backdrop pages, in catalog indexes.
+    private func pillarImageIndexes(_ page: Int) -> [Int] {
+        switch page {
+        case 2: return [3, 4, 2]
+        case 3: return [5, 1, 0]
+        default: return [0, 1, 3]
+        }
+    }
+
+    /// Side-by-side vertical photo pillars — a wallpaper with zero overlapping photos.
+    private func pillarWall(page: Int, opacity: Double) -> some View {
+        GeometryReader { geometry in
+            HStack(spacing: 2) {
+                ForEach(pillarImageIndexes(page).indices, id: \.self) { index in
+                    Image(OfficialSiteImages.collage[pillarImageIndexes(page)[index]])
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: index == 1 ? geometry.size.width * 0.36 : geometry.size.width * 0.31)
+                        .clipped()
+                        .opacity(opacity)
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
+        }
+        .accessibilityHidden(true)
+        .allowsHitTesting(false)
     }
 
     private var canopyGlow: some View {
