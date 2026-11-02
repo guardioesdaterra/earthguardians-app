@@ -295,7 +295,10 @@ private struct HeaderIconButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            UIC.feedback()
+            action()
+        } label: {
             ZStack {
                 Circle().fill(palette.glass)
                 Image(systemName: systemImage)

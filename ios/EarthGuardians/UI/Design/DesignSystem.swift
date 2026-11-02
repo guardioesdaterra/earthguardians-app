@@ -101,7 +101,10 @@ private struct ConditionalTapModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         if let onTap {
-            Button(action: onTap) { content }
+            Button {
+                UIC.feedback()
+                onTap()
+            } label: { content }
                 .buttonStyle(PressableStyle())
                 .accessibilityAddTraits(.isButton)
         } else {
@@ -172,7 +175,10 @@ public struct SectionTitle: View {
                 .foregroundColor(palette.onBackground)
             Spacer()
             if let action, let onAction {
-                Button(action: onAction) {
+                Button {
+                    UIC.feedback()
+                    onAction()
+                } label: {
                     Text(action)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(palette.eco)
@@ -210,6 +216,7 @@ public struct EgSearchField: View {
                 .autocorrectionDisabled()
             if !value.isEmpty {
                 Button {
+                    UIC.feedback()
                     value = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -252,7 +259,10 @@ public struct EgPrimaryButton: View {
     }
 
     public var body: some View {
-        Button(action: action) {
+        Button {
+            UIC.feedback()
+            action()
+        } label: {
             HStack(spacing: 8) {
                 if let systemImage {
                     Image(systemName: systemImage)
@@ -306,11 +316,33 @@ public struct EgPill: View {
 
 // MARK: - Stat tile (the numbers that carry the mission)
 
+/// Parses a leading number from a stat string: "1M+" → (1.0, "M+"); "94%" → (94.0, "%").
+private func egParseLeadingNumber(_ value: String) -> (numeric: Double, suffix: String)? {
+    let chars = Array(value)
+    var index = 0
+    var sawDigit = false
+    var sawDot = false
+    while index < chars.count {
+        let c = chars[index]
+        if c.isNumber {
+            sawDigit = true
+        } else if c == ".", sawDigit, !sawDot {
+            sawDot = true
+        } else {
+            break
+        }
+        index += 1
+    }
+    guard sawDigit, index > 0, let numeric = Double(String(chars[..<index])) else { return nil }
+    return (numeric, index < chars.count ? String(chars[index...]) : "")
+}
+
 public struct StatTile: View {
     @Environment(\.egPalette) private var palette
     private let value: String
     private let label: String
     private var tone: PillTone
+    @State private var progress: CGFloat = 0
 
     public init(_ value: String, _ label: String, tone: PillTone = .neutral) {
         self.value = value
@@ -318,11 +350,21 @@ public struct StatTile: View {
         self.tone = tone
     }
 
+    private var shownValue: String {
+        guard progress < 1, let parsed = egParseLeadingNumber(value) else { return value }
+        let scaled = parsed.numeric * progress
+        let digits = parsed.numeric.truncatingRemainder(dividingBy: 1) == 0
+            ? String(Int(scaled.rounded(.down)))
+            : String(format: "%.1f", scaled)
+        return digits + parsed.suffix
+    }
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(value)
+            Text(shownValue)
                 .font(.system(size: 22, weight: .black))
                 .foregroundColor(tone.fg(palette))
+                .monospacedDigit()
             Text(label)
                 .font(.system(size: 11))
                 .tracking(0.4)
@@ -339,6 +381,11 @@ public struct StatTile: View {
             RoundedRectangle(cornerRadius: EGRadius.tile, style: .continuous)
                 .strokeBorder(palette.glassStroke, lineWidth: 1)
         )
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.1).delay(0.16)) {
+                progress = 1
+            }
+        }
     }
 }
 
@@ -367,7 +414,10 @@ public struct BentoTile: View {
     }
 
     public var body: some View {
-        Button(action: action) {
+        Button {
+            UIC.feedback()
+            action()
+        } label: {
             VStack(alignment: .leading, spacing: 10) {
                 ZStack {
                     Circle().fill(tone.fg(palette).opacity(0.14))
@@ -509,6 +559,54 @@ public struct EmptyState: View {
         .padding(28)
         .frame(maxWidth: .infinity)
         #endif
+    }
+}
+
+// MARK: - Segmented control (iOS-style glass track with a sliding thumb)
+
+public struct EgSegmented: View {
+    @Environment(\.egPalette) private var palette
+    let options: [String]
+    @Binding var selection: Int
+
+    public init(options: [String], selection: Binding<Int>) {
+        self.options = options
+        self._selection = selection
+    }
+
+    public var body: some View {
+        GeometryReader { geo in
+            let segmentWidth = options.isEmpty ? 0 : (geo.size.width - 6) / CGFloat(options.count)
+            let clampedIndex = min(max(selection, 0), max(options.count - 1, 0))
+            ZStack(alignment: .leading) {
+                // Sliding thumb reads as the iOS selector instead of per-segment swaps.
+                Capsule()
+                    .fill(palette.onBackground)
+                    .frame(width: segmentWidth, height: geo.size.height - 6)
+                    .offset(x: 3 + segmentWidth * CGFloat(clampedIndex))
+                HStack(spacing: 0) {
+                    ForEach(options.indices, id: \.self) { index in
+                        let selected = selection == index
+                        Button {
+                            UIC.feedback()
+                            withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
+                                selection = index
+                            }
+                        } label: {
+                            Text(options[index])
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(selected ? palette.background : palette.muted)
+                                .frame(width: segmentWidth)
+                                .padding(.vertical, 8)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(PressableStyle())
+                    }
+                }
+                .offset(x: 3)
+            }
+        }
+        .frame(height: 38)
     }
 }
 

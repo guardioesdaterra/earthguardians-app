@@ -34,16 +34,48 @@ struct EventDetailScreen: View {
             if let event {
                 detail(event)
             } else {
-                VStack {
-                    EGBackButton { dismiss() }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12)
-                    EmptyState(
-                        systemImage: "arrow.up.forward.square",
-                        title: "Event unavailable",
-                        message: "This event fell out of the latest feed sync. Try refreshing from the Events tab."
-                    )
-                    Spacer()
+                switch graph.content.feed {
+                // Feed still syncing: shaped skeleton, never a fake error.
+                case .loading:
+                    VStack {
+                        EGBackButton { dismiss() }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                        ShimmerCard(height: 250).padding(.horizontal, 16)
+                        VStack(alignment: .leading, spacing: 12) {
+                            ShimmerCard(height: 26)
+                            ShimmerCard(height: 110)
+                        }
+                        .padding(.horizontal, 20)
+                        Spacer()
+                    }
+                    .padding(.top, 8)
+
+                case .failed(let message):
+                    VStack {
+                        EGBackButton { dismiss() }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                        FailedState(message: message) {
+                            Task { await graph.content.refreshFeed(force: true) }
+                        }
+                        Spacer()
+                    }
+                    .padding(.top, 8)
+
+                // Synced but the event is genuinely gone from the feed.
+                case .ready:
+                    VStack {
+                        EGBackButton { dismiss() }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                        EmptyState(
+                            systemImage: "arrow.up.forward.square",
+                            title: "Event unavailable",
+                            message: "This event fell out of the latest feed sync. Try refreshing from the Events tab."
+                        )
+                        Spacer()
+                    }
                 }
             }
         }

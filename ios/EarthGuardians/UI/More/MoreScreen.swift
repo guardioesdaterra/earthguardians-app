@@ -121,7 +121,10 @@ private struct HeaderTileButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            UIC.feedback()
+            action()
+        } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 14, style: .continuous).fill(palette.glass)
                 Image(systemName: systemImage)
@@ -157,6 +160,7 @@ private struct GroupCard: View {
             VStack(spacing: 0) {
                 ForEach(sections) { section in
                     Button {
+                        UIC.feedback()
                         onOpen(section)
                     } label: {
                         HStack {
@@ -202,29 +206,36 @@ private struct SitemapIndexCard: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(palette.onBackground)
                 Spacer()
-                EgPill("from /sitemap.xml", tone: .green)
+                EgPill("\(extras.count) new pages", tone: .green)
             }
-            Text("Live-discovered pages that haven't curated placement yet — included automatically.")
+            Text("Live-discovered pages still waiting for curated placement — tap to open.")
                 .font(.system(size: 12))
                 .foregroundColor(palette.muted)
+                .lineLimit(2)
 
-            VStack(spacing: 0) {
+            // Chips instead of a row wall: scannable, dense, still fully tappable.
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 110), spacing: 6)],
+                alignment: .leading,
+                spacing: 6
+            ) {
                 ForEach(extras.prefix(40), id: \.self) { path in
                     Button {
+                        UIC.feedback()
                         openURL("\(SitePaths.siteURL)/\(path)")
                     } label: {
-                        HStack {
-                            Text(path.replacingOccurrences(of: "-", with: " ").capitalized)
-                                .font(.system(size: 14))
-                                .foregroundColor(palette.onBackground)
-                                .lineLimit(1)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(palette.muted.opacity(0.7))
-                        }
-                        .padding(.vertical, 7)
-                        .contentShape(Rectangle())
+                        Text(path.replacingOccurrences(of: "-", with: " ").capitalized)
+                            .font(.system(size: 12))
+                            .lineLimit(1)
+                            .foregroundColor(palette.onBackground)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule().fill(palette.glassAlt)
+                            )
+                            .overlay(
+                                Capsule().strokeBorder(palette.glassStroke, lineWidth: 1)
+                            )
                     }
                     .buttonStyle(PressableStyle())
                 }

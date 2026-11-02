@@ -231,7 +231,7 @@ private struct CrewsMapScreen: View {
             let inactive = filteredRegions.reduce(0) { $0 + $1.inactiveCrews }
             return "\(filteredRegions.count) regions · \(active) active · \(inactive) inactive"
         }
-        return "\(filteredLocations.count) Crews · Active green · Inactive amber"
+        return "\(filteredLocations.count) Crews · Active green · Inactive red"
     }
 
     var body: some View {
@@ -243,7 +243,13 @@ private struct CrewsMapScreen: View {
             case .loading:
                 mapPlaceholder(message: "Loading public crew map…")
             case .failed(let message):
-                mapPlaceholder(message: message, icon: "exclamationmark.triangle")
+                VStack(spacing: 12) {
+                    mapPlaceholder(message: message, icon: "exclamationmark.triangle")
+                    EgPrimaryButton("Try again", tone: .red) {
+                        state = .loading
+                        load()
+                    }
+                }
             case .empty:
                 mapPlaceholder(message: "No crew locations are available.")
             case .loaded:
@@ -302,8 +308,9 @@ private struct CrewsMapScreen: View {
                     coordinate: { $0.coordinate },
                     title: { $0.region },
                     subtitle: { "\($0.activeCrews) active · \($0.inactiveCrews) inactive" },
-                    glyph: { _ in "C" },
-                    tint: { _ in .systemBlue },
+                    glyph: { _ in "R" },
+                    tint: { _ in egMarkerWhite },
+                    glyphTint: { _ in egMarkerInk },
                     onSelect: { item in
                         selectedRegion = item
                         UIC.feedback()
@@ -318,7 +325,7 @@ private struct CrewsMapScreen: View {
                     title: { $0.name },
                     subtitle: { [$0.city, $0.state, $0.country].filter { !$0.isEmpty }.joined(separator: ", ") },
                     glyph: { _ in "C" },
-                    tint: { $0.status.lowercased() == "active" ? .systemGreen : .systemOrange },
+                    tint: { $0.status.lowercased() == "active" ? egMarkerGreen : egMarkerRed },
                     onSelect: { item in
                         selectedLocation = item
                         UIC.feedback()
@@ -372,7 +379,10 @@ private struct CrewsMapScreen: View {
                 Text("No other Crew locations are within \(Int(nearbyCrewMaxDistanceKm)) km.").font(.system(size: 12)).foregroundColor(.secondary)
             } else {
                 ForEach(nearby) { entry in
-                    Button { focus(on: entry.crew) } label: {
+                    Button {
+                        UIC.feedback()
+                        focus(on: entry.crew)
+                    } label: {
                         nearbyCrewRow(entry)
                     }
                     .buttonStyle(.plain)
@@ -401,7 +411,10 @@ private struct CrewsMapScreen: View {
                             Text("Beneficiaries: \(beneficiaryCount(entry.project.direct_beneficiaries)) direct · \(beneficiaryCount(entry.project.indirect_beneficiaries)) indirect")
                                 .font(.system(size: 10)).foregroundColor(.secondary)
                             Spacer()
-                            Button("Fly to") { onFlyToProject(entry.project) }
+                            Button("Fly to") {
+                                UIC.feedback()
+                                onFlyToProject(entry.project)
+                            }
                                 .font(.system(size: 11, weight: .semibold))
                         }
                     }
@@ -450,7 +463,13 @@ private struct ProjectGrantsMapScreen: View {
             case .loading:
                 mapPlaceholder(message: "Loading public grant map…")
             case .failed(let message):
-                mapPlaceholder(message: message, icon: "exclamationmark.triangle")
+                VStack(spacing: 12) {
+                    mapPlaceholder(message: message, icon: "exclamationmark.triangle")
+                    EgPrimaryButton("Try again", tone: .red) {
+                        state = .loading
+                        load()
+                    }
+                }
             case .empty:
                 mapPlaceholder(message: "No public grant projects are available.")
             case .loaded:
@@ -464,10 +483,16 @@ private struct ProjectGrantsMapScreen: View {
                         subtitle: { $0.country_province },
                         glyph: { _ in "G" },
                         tint: { grant in
+                            // Tier colors stay inside the EG palette: white → green → red.
                             let total = max(0, grant.direct_beneficiaries) + max(0, grant.indirect_beneficiaries)
-                            if total >= 10_000 { return .systemPurple }
-                            if total >= 1_000 { return .systemTeal }
-                            return .systemBlue
+                            if total >= 10_000 { return egMarkerRed }
+                            if total >= 1_000 { return egMarkerGreen }
+                            return egMarkerWhite
+                        },
+                        glyphTint: { grant in
+                            let total = max(0, grant.direct_beneficiaries) + max(0, grant.indirect_beneficiaries)
+                            if total >= 1_000 { return .white }
+                            return egMarkerInk
                         },
                         onSelect: { grant in
                             selectedGrant = grant
@@ -531,7 +556,10 @@ private struct ProjectGrantsMapScreen: View {
                 Text("No Crew locations are within \(Int(nearbyCrewMaxDistanceKm)) km of this project.").font(.system(size: 12)).foregroundColor(.secondary)
             } else {
                 ForEach(nearby) { entry in
-                    Button { onSelectNearbyCrew(entry.crew) } label: {
+                    Button {
+                        UIC.feedback()
+                        onSelectNearbyCrew(entry.crew)
+                    } label: {
                         nearbyCrewRow(entry)
                     }
                     .buttonStyle(.plain)
@@ -583,6 +611,7 @@ private struct SatelliteMapView<Item: Identifiable>: UIViewRepresentable where I
     let subtitle: (Item) -> String
     let glyph: (Item) -> String
     let tint: (Item) -> UIColor
+    var glyphTint: (Item) -> UIColor = { _ in .white }
     let onSelect: (Item) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -655,6 +684,7 @@ private struct SatelliteMapView<Item: Identifiable>: UIViewRepresentable where I
                 ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: reuseID)
             view.annotation = annotation
             view.markerTintColor = parent.tint(item)
+            view.glyphTintColor = parent.glyphTint(item)
             view.glyphText = parent.glyph(item)
             view.displayPriority = .required
             view.canShowCallout = false
@@ -769,10 +799,16 @@ private func googleMapsURL(latitude: Double, longitude: Double) -> URL {
     URL(string: "https://www.google.com/maps?q=\(latitude),\(longitude)")!
 }
 
+// Exact EG brand colors for map markers (black/white + iOS red/green only).
+private let egMarkerGreen = UIColor(red: 0.204, green: 0.780, blue: 0.349, alpha: 1) // #34C759
+private let egMarkerRed = UIColor(red: 1.000, green: 0.231, blue: 0.188, alpha: 1) // #FF3B30
+private let egMarkerWhite = UIColor(red: 1.000, green: 1.000, blue: 1.000, alpha: 1) // #FFFFFF
+private let egMarkerInk = UIColor(red: 0.02, green: 0.02, blue: 0.02, alpha: 1) // #050505
+
 private func nearbyCrewRow(_ entry: NearbyCrew) -> some View {
     HStack(spacing: 9) {
         Circle()
-            .fill(entry.crew.status.lowercased() == "active" ? Color.green : Color.orange)
+            .fill(entry.crew.status.lowercased() == "active" ? Color(red: 0.204, green: 0.780, blue: 0.349) : Color(red: 1.0, green: 0.231, blue: 0.188))
             .frame(width: 8, height: 8)
         VStack(alignment: .leading, spacing: 2) {
             Text(entry.crew.name).font(.system(size: 12, weight: .semibold)).lineLimit(1)
@@ -881,36 +917,5 @@ private func detailRow(_ title: String, value: String) -> some View {
         Text(title).font(.system(size: 12)).foregroundColor(.secondary)
         Spacer()
         Text(value).font(.system(size: 12, weight: .semibold))
-    }
-}
-
-// MARK: - Segmented control (iOS-style, glass track)
-
-struct EgSegmented: View {
-    @Environment(\.egPalette) private var palette
-    let options: [String]
-    @Binding var selection: Int
-
-    var body: some View {
-        HStack(spacing: 2) {
-            ForEach(options.indices, id: \.self) { index in
-                let selected = selection == index
-                Button {
-                    UIC.feedback()
-                    withAnimation(.easeOut(duration: 0.18)) { selection = index }
-                } label: {
-                    Text(options[index])
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(selected ? palette.background : palette.muted)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(Capsule().fill(selected ? palette.onBackground : Color.clear))
-                }
-                .buttonStyle(PressableStyle())
-            }
-        }
-        .padding(3)
-        .background(Capsule().fill(palette.glass))
-        .overlay(Capsule().strokeBorder(palette.glassStroke, lineWidth: 1))
     }
 }

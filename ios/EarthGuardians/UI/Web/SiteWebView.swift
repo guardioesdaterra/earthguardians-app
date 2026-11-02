@@ -94,7 +94,10 @@ struct SiteWebView: View {
     }
 
     private func chromeButton(_ systemImage: String, _ label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        Button {
+            UIC.feedback()
+            action()
+        } label: {
             Image(systemName: systemImage)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(palette.onBackground)
