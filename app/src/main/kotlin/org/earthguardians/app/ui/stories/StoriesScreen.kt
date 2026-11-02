@@ -50,9 +50,11 @@ import org.earthguardians.app.data.model.FeedUiState
 import org.earthguardians.app.graph.AppGraph
 import org.earthguardians.app.ui.common.PostRowCard
 import org.earthguardians.app.ui.design.EgSearchField
+import org.earthguardians.app.ui.design.EgPill
 import org.earthguardians.app.ui.design.EmptyState
 import org.earthguardians.app.ui.design.FailedState
 import org.earthguardians.app.ui.design.LargeTitle
+import org.earthguardians.app.ui.design.PillTone
 import org.earthguardians.app.ui.design.ShimmerCard
 import org.earthguardians.app.ui.theme.egPalette
 import org.earthguardians.app.ui.web.EgWebBridge
@@ -109,6 +111,11 @@ internal fun StoriesScreen(
                     state.data.posts
                         .sortedByDescending { it.publishedAt ?: 0L }
                         .filter { it.title.contains(query.trim(), ignoreCase = true) || query.isBlank() }
+                }
+                if (state.isStale) {
+                    Box(Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+                        EgPill(text = "offline · showing cached stories", tone = PillTone.Red)
+                    }
                 }
                 if (posts.isEmpty()) {
                     Box(Modifier.padding(top = 12.dp)) {

@@ -30,6 +30,7 @@ import org.earthguardians.app.data.parse.RssParser
 import org.earthguardians.app.ui.design.EgRadius
 import org.earthguardians.app.ui.design.egPressScale
 import org.earthguardians.app.ui.design.rememberPressInteraction
+import org.earthguardians.app.ui.design.rememberTapHaptic
 import org.earthguardians.app.ui.theme.egPalette
 
 /**
@@ -44,10 +45,14 @@ fun PostRowCard(
 ) {
     val palette = egPalette
     val interaction = rememberPressInteraction()
+    val tapHaptic = rememberTapHaptic()
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(EgRadius.tile))
-            .clickable(interactionSource = interaction, indication = null) { onClick() }
+            .clickable(interactionSource = interaction, indication = null) {
+                tapHaptic()
+                onClick()
+            }
             .egPressScale(interaction)
             .padding(6.dp),
         verticalAlignment = Alignment.CenterVertically,

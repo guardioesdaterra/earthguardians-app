@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,8 +44,11 @@ import org.earthguardians.app.ui.common.EgImage
 import org.earthguardians.app.ui.design.EgPrimaryButton
 import org.earthguardians.app.ui.design.EmptyState
 import org.earthguardians.app.ui.design.EgPill
+import org.earthguardians.app.ui.design.FailedState
 import org.earthguardians.app.ui.design.GlassCard
 import org.earthguardians.app.ui.design.PillTone
+import org.earthguardians.app.ui.design.ShimmerCard
+import kotlinx.coroutines.launch
 import org.earthguardians.app.ui.theme.egPalette
 
 /**
@@ -62,6 +66,7 @@ internal fun EventDetailScreen(
     val feed by graph.content.feed.collectAsState()
     val context = LocalContext.current
     val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
 
     val event = (feed as? FeedUiState.Ready)?.data?.events?.firstOrNull { it.url == eventUrl }
 
@@ -105,13 +110,48 @@ internal fun EventDetailScreen(
         }
 
         if (event == null) {
-            item {
-                Box(Modifier.padding(top = 30.dp)) {
-                    EmptyState(
-                        icon = Icons.Rounded.OpenInNew,
-                        title = "Event unavailable",
-                        message = "This event fell out of the latest feed sync. Try refreshing from the Events tab.",
-                    )
+            when (feed) {
+                // Feed still syncing: show a shaped skeleton, never a fake error.
+                is FeedUiState.Loading -> {
+                    item {
+                        ShimmerCard(
+                            height = 250.dp,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            ShimmerCard(height = 26.dp)
+                            ShimmerCard(height = 110.dp)
+                            ShimmerCard(height = 90.dp)
+                        }
+                    }
+                }
+
+                is FeedUiState.Failed -> item {
+                    Box(Modifier.padding(top = 24.dp)) {
+                        FailedState(
+                            title = "Event feed offline",
+                            message = (feed as FeedUiState.Failed).message,
+                            onRetry = { scope.launch { graph.content.refreshFeed(force = true) } },
+                        )
+                    }
+                }
+
+                // Synced but the event is genuinely gone from the feed.
+                else -> item {
+                    Box(Modifier.padding(top = 30.dp)) {
+                        EmptyState(
+                            icon = Icons.Rounded.OpenInNew,
+                            title = "Event unavailable",
+                            message = "This event fell out of the latest feed sync. Try refreshing from the Events tab.",
+                        )
+                    }
                 }
             }
         } else {

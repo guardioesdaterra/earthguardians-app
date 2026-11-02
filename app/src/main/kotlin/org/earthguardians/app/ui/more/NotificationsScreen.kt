@@ -2,6 +2,8 @@ package org.earthguardians.app.ui.more
 
 import android.text.format.DateUtils
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -16,13 +18,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,6 +49,7 @@ import org.earthguardians.app.ui.design.EmptyState
 import org.earthguardians.app.ui.design.EgPrimaryButton
 import org.earthguardians.app.ui.design.GlassCard
 import org.earthguardians.app.ui.design.PillTone
+import org.earthguardians.app.ui.design.rememberTapHaptic
 import org.earthguardians.app.ui.theme.egPalette
 
 /** In-app Notification Center — mirrors everything the app posted system-wide. */
@@ -114,51 +123,88 @@ internal fun NotificationsScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(items.size) { index ->
-                    val record = items[index]
-                    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp, onClick = {
-                        // iOS behavior: tapping a row opens it and clears its unread dot.
-                        if (!record.read) {
-                            scope.launch {
-                                graph.prefs.saveNotifications(items.map {
-                                    if (it.id == record.id) it.copy(read = true) else it
-                                })
-                            }
+                items(items, key = { it.id }) { record ->
+                    val tapHaptic = rememberTapHaptic()
+                    fun deleteRecord() {
+                        scope.launch {
+                            graph.prefs.saveNotifications(items.filter { it.id != record.id })
                         }
-                        graph.routeBus.postRoute(record.route)
-                    }) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    }
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                tapHaptic()
+                                deleteRecord()
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                    )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
                             Box(
                                 modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(if (record.read) palette.outline else palette.accent),
-                            )
-                            Spacer(Modifier.size(10.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    text = record.title,
-                                    color = palette.onBackground,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Text(
-                                    text = record.message,
-                                    color = palette.muted,
-                                    fontSize = 14.sp,
-                                    lineHeight = 19.sp,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(palette.accent),
+                                contentAlignment = Alignment.CenterEnd,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Delete,
+                                    contentDescription = "Delete notification",
+                                    tint = palette.onAccent,
+                                    modifier = Modifier.padding(end = 18.dp),
                                 )
                             }
-                            Text(
-                                text = DateUtils.getRelativeTimeSpanString(record.postedAt).toString(),
-                                color = palette.muted,
-                                fontSize = 11.sp,
-                            )
+                        },
+                    ) {
+                        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp, onClick = {
+                            // iOS behavior: tapping a row opens it and clears its unread dot.
+                            if (!record.read) {
+                                scope.launch {
+                                    graph.prefs.saveNotifications(items.map {
+                                        if (it.id == record.id) it.copy(read = true) else it
+                                    })
+                                }
+                            }
+                            graph.routeBus.postRoute(record.route)
+                        }) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(if (record.read) palette.outline else palette.accent),
+                                )
+                                Spacer(Modifier.size(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        text = record.title,
+                                        color = palette.onBackground,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        text = record.message,
+                                        color = palette.muted,
+                                        fontSize = 14.sp,
+                                        lineHeight = 19.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                Text(
+                                    text = DateUtils.getRelativeTimeSpanString(record.postedAt).toString(),
+                                    color = palette.muted,
+                                    fontSize = 11.sp,
+                                )
+                            }
                         }
                     }
                 }

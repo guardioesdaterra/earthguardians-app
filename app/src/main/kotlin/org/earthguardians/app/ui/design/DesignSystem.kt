@@ -1,16 +1,26 @@
 package org.earthguardians.app.ui.design
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,6 +45,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -54,6 +66,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.earthguardians.app.ui.theme.egPalette
+import java.util.Locale
+import kotlin.math.roundToInt
 
 /** Spacing scale (iOS 4/8 grid). */
 object EgSpacing {
@@ -117,6 +131,7 @@ fun GlassCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val palette = egPalette
+    val tapHaptic = rememberTapHaptic()
     val shape = RoundedCornerShape(cornerRadius)
     val interaction = rememberPressInteraction()
 
@@ -135,7 +150,10 @@ fun GlassCard(
         .then(
             when (onClick) {
                 null -> Modifier
-                else -> Modifier.clickable(interactionSource = interaction, indication = null) { onClick() }
+                else -> Modifier.clickable(interactionSource = interaction, indication = null) {
+                    tapHaptic()
+                    onClick()
+                }
             },
         )
         .then(if (onClick != null) Modifier.egPressScale(interaction) else Modifier)
@@ -184,6 +202,7 @@ fun SectionTitle(
     modifier: Modifier = Modifier,
 ) {
     val palette = egPalette
+    val tapHaptic = rememberTapHaptic()
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -207,7 +226,10 @@ fun SectionTitle(
                 modifier = Modifier.clickable(
                     interactionSource = rememberPressInteraction(),
                     indication = null,
-                ) { onAction() },
+                ) {
+                    tapHaptic()
+                    onAction()
+                },
             )
         }
     }
@@ -222,41 +244,63 @@ fun EgSegmentedControl(
     modifier: Modifier = Modifier,
 ) {
     val palette = egPalette
+    val tapHaptic = rememberTapHaptic()
     val shape = RoundedCornerShape(EgRadius.pill)
-    Row(
+    BoxWithConstraints(
         modifier = modifier
             .clip(shape)
             .background(palette.glass, shape)
             .border(1.dp, palette.glassStroke, shape)
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+            .height(38.dp),
     ) {
-        options.forEachIndexed { index, option ->
-            val selected = index == selectedIndex
-            Row(
-                modifier = Modifier
-                    .weight(1f)
+        // The 6.dp inset matches the control padding so the thumb lines up with the Row below.
+        val segmentWidth = if (options.isEmpty() || maxWidth == Dp.Infinity) 0.dp else (maxWidth - 6.dp) / options.size
+        val thumbOffset by animateDpAsState(
+            targetValue = segmentWidth * selectedIndex,
+            animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
+            label = "egSegmentedThumb",
+        )
+        Box(Modifier.matchParentSize().padding(3.dp)) {
+            // Sliding thumb reads as the iOS selector instead of per-segment swaps.
+            Box(
+                Modifier
+                    .offset(x = thumbOffset)
+                    .width(segmentWidth)
+                    .fillMaxHeight()
                     .clip(RoundedCornerShape(EgRadius.pill))
-                    .background(
-                        when {
-                            selected -> palette.onBackground
-                            else -> Color.Transparent
-                        },
-                        RoundedCornerShape(EgRadius.pill),
-                    )
-                    .clickable(
-                        interactionSource = rememberPressInteraction(),
-                        indication = null,
-                    ) { onSelect(index) }
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    text = option,
-                    color = if (selected) palette.background else palette.muted,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                    .background(palette.onBackground),
+            )
+            Row(Modifier.fillMaxHeight()) {
+                options.forEachIndexed { index, option ->
+                    val selected = index == selectedIndex
+                    val interaction = rememberPressInteraction()
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(EgRadius.pill))
+                            .clickable(
+                                interactionSource = interaction,
+                                indication = null,
+                            ) {
+                                tapHaptic()
+                                onSelect(index)
+                            }
+                            .padding(vertical = 5.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = option,
+                            color = animateColorAsState(
+                                targetValue = if (selected) palette.background else palette.muted,
+                                animationSpec = tween(180),
+                                label = "egSegmentedLabel$index",
+                            ),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                        )
+                    }
+                }
             }
         }
     }
@@ -333,11 +377,15 @@ fun EgPrimaryButton(
         PillTone.Green -> palette.onEco
     }
     val interaction = rememberPressInteraction()
+    val tapHaptic = rememberTapHaptic()
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(EgRadius.pill))
             .background(bg)
-            .clickable(interactionSource = interaction, indication = null) { onClick() }
+            .clickable(interactionSource = interaction, indication = null) {
+                tapHaptic()
+                onClick()
+            }
             .egPressScale(interaction)
             .padding(horizontal = 22.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -385,7 +433,27 @@ fun EgPill(
     )
 }
 
-/** Bento stat tile — the numbers that carry the mission. */
+/** Leading-numeric stat parsing: "1M+" → (1.0, "M+"); "94%" → (94.0, "%"). */
+private data class AnimatedNumber(val value: Float, val suffix: String)
+
+private val leadingNumberRegex = Regex("^([0-9]+(?:\\.[0-9]+)?)([+%,()].*)?$")
+
+private fun parseLeadingNumber(value: String): AnimatedNumber? {
+    val match = leadingNumberRegex.find(value.trim()) ?: return null
+    val numeric = match.groupValues[1].toFloatOrNull() ?: return null
+    return AnimatedNumber(numeric, match.groupValues[2])
+}
+
+private fun formatAnimatedNumber(number: AnimatedNumber, progress: Float): String {
+    val scaled = number.value * progress
+    return if (number.value % 1f != 0f) {
+        String.format(Locale.US, "%.1f", scaled) + number.suffix
+    } else {
+        scaled.roundToInt().toString() + number.suffix
+    }
+}
+
+/** Bento stat tile — the numbers that carry the mission (count-up on first show). */
 @Composable
 fun StatTile(
     value: String,
@@ -400,6 +468,15 @@ fun StatTile(
         PillTone.Green -> palette.eco
         PillTone.Neutral -> palette.onBackground
     }
+    val parsed = remember(value) { parseLeadingNumber(value) }
+    val counter = remember { Animatable(0f) }
+    LaunchedEffect(value) {
+        counter.animateTo(1f, animationSpec = tween(1100, delayMillis = 160, easing = FastOutSlowInEasing))
+    }
+    val shownValue = when {
+        parsed == null || counter.value >= 1f -> value
+        else -> formatAnimatedNumber(parsed, counter.value)
+    }
     Column(
         modifier = modifier
             .clip(shape)
@@ -407,7 +484,7 @@ fun StatTile(
             .border(1.dp, palette.glassStroke, shape)
             .padding(14.dp),
     ) {
-        Text(text = value, color = accent, fontSize = 22.sp, fontWeight = FontWeight.Black)
+        Text(text = shownValue, color = accent, fontSize = 22.sp, fontWeight = FontWeight.Black)
         Spacer(Modifier.height(4.dp))
         Text(
             text = label,
@@ -433,6 +510,7 @@ fun BentoTile(
 ) {
     val palette = egPalette
     val interaction = rememberPressInteraction()
+    val tapHaptic = rememberTapHaptic()
     val shape = RoundedCornerShape(EgRadius.tile)
     val accent = when (tone) {
         PillTone.Red -> palette.accent
@@ -444,7 +522,10 @@ fun BentoTile(
             .clip(shape)
             .background(palette.glass, shape)
             .border(1.dp, palette.glassStroke, shape)
-            .clickable(interactionSource = interaction, indication = null) { onClick() }
+            .clickable(interactionSource = interaction, indication = null) {
+                tapHaptic()
+                onClick()
+            }
             .egPressScale(interaction)
             .padding(16.dp),
     ) {
@@ -558,10 +639,14 @@ fun DisclosureRow(
 ) {
     val palette = egPalette
     val interaction = rememberPressInteraction()
+    val tapHaptic = rememberTapHaptic()
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(interactionSource = interaction, indication = null) { onClick() }
+            .clickable(interactionSource = interaction, indication = null) {
+                tapHaptic()
+                onClick()
+            }
             .padding(vertical = 12.dp, horizontal = 2.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

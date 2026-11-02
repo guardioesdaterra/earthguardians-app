@@ -13,6 +13,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -23,14 +24,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -68,8 +82,10 @@ import org.earthguardians.app.graph.AppGraph
 import org.earthguardians.app.ui.design.EgRadius
 import org.earthguardians.app.ui.design.EgSearchField
 import org.earthguardians.app.ui.design.EgSegmentedControl
+import org.earthguardians.app.ui.design.FailedState
 import org.earthguardians.app.ui.design.GlassCard
 import org.earthguardians.app.ui.design.LargeTitle
+import org.earthguardians.app.ui.design.rememberTapHaptic
 import org.earthguardians.app.ui.theme.egPalette
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -182,12 +198,15 @@ internal fun MapsScreen(
     var tab by remember { mutableIntStateOf(0) }
     var query by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<MapSelection?>(null) }
+    // Bumping this key re-runs the (local, no-network) repository load after a failure.
+    var loadKey by remember { mutableIntStateOf(0) }
+    val tapHaptic = rememberTapHaptic()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(loadKey) {
         state = runCatching { MapAssetRepository(context).load() }
             .fold(
                 onSuccess = { NativeMapsState.Ready(it) },
-                onFailure = { NativeMapsState.Failed("Não foi possível carregar os dados públicos do mapa.") },
+                onFailure = { NativeMapsState.Failed("The public map data could not be loaded. Check your connection and try again.") },
             )
     }
 
@@ -228,7 +247,7 @@ internal fun MapsScreen(
             } else {
                 when (val current = state) {
                     NativeMapsState.Loading -> LoadingMaps()
-                    is NativeMapsState.Failed -> ErrorMaps(current.message)
+                    is NativeMapsState.Failed -> ErrorMaps(current.message, onRetry = { loadKey++ })
                     is NativeMapsState.Ready -> {
                         EgSearchField(
                             value = query,
@@ -270,30 +289,42 @@ private sealed interface MapSelection {
     data class Grant(val value: ProjectGrant) : MapSelection
 }
 
-private enum class MarkerAppearance(val color: Int, val label: String, val markerSizeDp: Int = 44) {
-    ActiveCrew(android.graphics.Color.rgb(36, 126, 70), "C"),
-    InactiveCrew(android.graphics.Color.rgb(194, 120, 18), "C"),
-    RegionAggregate(android.graphics.Color.rgb(43, 94, 86), "R", 48),
-    Grant(android.graphics.Color.rgb(30, 103, 163), "G", 44),
-    GrantMedium(android.graphics.Color.rgb(0, 133, 119), "G", 48),
-    GrantLarge(android.graphics.Color.rgb(116, 77, 161), "G", 52),
+// Marker discs stay inside the EG palette (green = alive/impact, red = inactive,
+// white = region aggregations) — letter + size carry the differentiation.
+private enum class MarkerAppearance(
+    val color: Int,
+    val label: String,
+    val letterColor: Int = 0xFFFFFFFF,
+    val markerSizeDp: Int = 44,
+) {
+    ActiveCrew(0xFF34C759.toInt(), "C"),
+    InactiveCrew(0xFFFF3B30.toInt(), "C"),
+    RegionAggregate(0xFFFFFFFF.toInt(), "R", letterColor = 0xFF050505.toInt(), markerSizeDp = 48),
+    Grant(0xFF34C759.toInt(), "G"),
+    GrantMedium(0xFF34C759.toInt(), "G", markerSizeDp = 48),
+    GrantLarge(0xFF34C759.toInt(), "G", markerSizeDp = 52),
 }
 
 @Composable
 private fun LoadingMaps() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+    ) {
         CircularProgressIndicator(color = egPalette.eco)
+        Text("Loading public crews and grants…", color = egPalette.muted, fontSize = 14.sp)
     }
 }
 
 @Composable
-private fun ErrorMaps(message: String) {
-    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        GlassCard(Modifier.fillMaxWidth()) {
-            Text("Maps", color = egPalette.onBackground, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
-            Text(message, color = egPalette.muted, fontSize = 14.sp)
-        }
+private fun ErrorMaps(message: String, onRetry: () -> Unit) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        FailedState(
+            title = "Couldn't load the map",
+            message = message,
+            onRetry = onRetry,
+        )
     }
 }
 
@@ -413,6 +444,7 @@ private fun NativeMapPanel(
                 SelectionCard(
                     selection = selected,
                     data = data,
+                    onClose = { tapHaptic(); selected = null },
                     onOpenMaps = { latitude, longitude ->
                         runCatching {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps?q=$latitude,$longitude")))
@@ -430,8 +462,9 @@ private fun NativeMapPanel(
             }
             if (mode == MapMode.Crews) CrewMapLegend()
             Surface(
-                color = Color(0xE6FFFFFF),
-                shape = RoundedCornerShape(8.dp),
+                color = egPalette.glass,
+                border = BorderStroke(1.dp, egPalette.glassStroke),
+                shape = RoundedCornerShape(EgRadius.tile),
                 modifier = Modifier.padding(bottom = 8.dp),
             ) {
                 Row(Modifier.padding(horizontal = 10.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -439,7 +472,7 @@ private fun NativeMapPanel(
                     Spacer(Modifier.width(5.dp))
                     Text(
                         "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community",
-                        color = Color(0xFF33443B),
+                        color = egPalette.muted,
                         fontSize = 9.sp,
                         lineHeight = 11.sp,
                         modifier = Modifier.widthIn(max = 260.dp),
@@ -452,9 +485,11 @@ private fun NativeMapPanel(
 
 @Composable
 private fun CrewMapLegend() {
+    val palette = egPalette
     Surface(
-        color = Color(0xE6FFFFFF),
-        shape = RoundedCornerShape(8.dp),
+        color = palette.glass,
+        border = BorderStroke(1.dp, palette.glassStroke),
+        shape = RoundedCornerShape(EgRadius.tile),
         modifier = Modifier.padding(bottom = 6.dp),
     ) {
         Row(
@@ -462,18 +497,19 @@ private fun CrewMapLegend() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CrewLegendItem(Color(0xFF2B5E56), "Regions")
-            CrewLegendItem(Color(0xFF247E46), "Active")
-            CrewLegendItem(Color(0xFFC27812), "Inactive")
+            CrewLegendItem(palette.onBackground, "Regions")
+            CrewLegendItem(palette.eco, "Active")
+            CrewLegendItem(palette.accent, "Inactive")
         }
     }
 }
 
 @Composable
 private fun CrewLegendItem(color: Color, label: String) {
+    val palette = egPalette
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(Modifier.width(8.dp).height(8.dp).clip(RoundedCornerShape(8.dp)).background(color))
-        Text(label, color = Color(0xFF33443B), fontSize = 10.sp)
+        Box(Modifier.width(8.dp).height(8.dp).clip(RoundedCornerShape(8.dp)).background(color).border(1.dp, palette.glassStroke, RoundedCornerShape(8.dp)))
+        Text(label, color = palette.onBackground, fontSize = 10.sp)
     }
 }
 
@@ -481,17 +517,40 @@ private fun CrewLegendItem(color: Color, label: String) {
 private fun SelectionCard(
     selection: MapSelection,
     data: NativeMapsData,
+    onClose: () -> Unit,
     onOpenMaps: (Double, Double) -> Unit,
     onSelectNearbyCrew: (CrewLocation) -> Unit,
     onFlyToProject: (ProjectGrant) -> Unit,
 ) {
-    GlassCard(
+    val tapHaptic = rememberTapHaptic()
+    val palette = egPalette
+    // Enter as a springy sheet rising from the map; content cross-fades between markers.
+    val appearance = remember { MutableTransitionState(false).apply { targetState = true } }
+    AnimatedVisibility(
+        visibleState = appearance,
+        enter = slideInVertically(
+            animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMediumLow),
+            initialOffsetY = { it / 3 },
+        ) + fadeIn(tween(170)),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        cornerRadius = EgRadius.tile,
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().heightIn(max = 350.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(7.dp),
+        Box {
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = EgRadius.tile,
+            ) {
+                Box {
+                    AnimatedContent(
+                        targetState = selection,
+                        transitionSpec = {
+                            (slideInVertically(spring(dampingRatio = 0.9f, stiffness = 380f), initialOffsetY = { it / 16 }) + fadeIn(tween(160)))
+                                .togetherWith(fadeOut(tween(90)))
+                        },
+                        label = "selectionDetail",
+                    ) { selection ->
+                        Column(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 350.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             when (selection) {
                 is MapSelection.Region -> {
@@ -505,7 +564,7 @@ private fun SelectionCard(
                     val projects = relatedProjects(crew, data)
                     Text(crew.name, color = egPalette.onBackground, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     Text(listOfNotNull(crew.city.takeIf(String::isNotBlank), crew.state?.takeIf(String::isNotBlank), crew.country.takeIf(String::isNotBlank)).joinToString(", "), color = egPalette.muted, fontSize = 13.sp)
-                    Text("${crew.status.replaceFirstChar { it.uppercase() }} · ${crew.region}", color = if (crew.status.equals("active", true)) Color(0xFF247E46) else Color(0xFFC27812), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("${crew.status.replaceFirstChar { it.uppercase() }} · ${crew.region}", color = if (crew.status.equals("active", true)) egPalette.eco else egPalette.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Text("Coordinates  ${String.format(Locale.ROOT, "%.4f", crew.lat)}, ${String.format(Locale.ROOT, "%.4f", crew.lng)}", color = egPalette.muted, fontSize = 11.sp)
                     DetailSectionTitle("Nearby Crews · within ${NEARBY_CREW_MAX_DISTANCE_KM.toInt()} km · ${nearby.size}")
                     if (nearby.isEmpty()) {
@@ -523,11 +582,11 @@ private fun SelectionCard(
                             Text("${entry.project.country_province} · ${entry.reason.replace('-', ' ').replaceFirstChar { it.uppercase() }} · ${formatDistance(entry.distanceKm)}", color = egPalette.muted, fontSize = 10.sp)
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("Beneficiaries: ${beneficiaryCount(entry.project.direct_beneficiaries)} direct · ${beneficiaryCount(entry.project.indirect_beneficiaries)} indirect", color = egPalette.muted, fontSize = 10.sp, modifier = Modifier.weight(1f))
-                                Text("Fly to →", color = egPalette.eco, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { onFlyToProject(entry.project) }.padding(6.dp))
+                                Text("Fly to →", color = egPalette.eco, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { tapHaptic(); onFlyToProject(entry.project) }.padding(6.dp))
                             }
                         }
                     }
-                    Text("Open in Google Maps ↗", color = egPalette.eco, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onOpenMaps(crew.lat, crew.lng) }.padding(vertical = 8.dp))
+                    Text("Open in Google Maps ↗", color = egPalette.eco, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { tapHaptic(); onOpenMaps(crew.lat, crew.lng) }.padding(vertical = 8.dp))
                 }
                 is MapSelection.Grant -> {
                     val grant = selection.value
@@ -543,7 +602,7 @@ private fun SelectionCard(
                     if (total > 0) {
                         val share = direct.toFloat() / total.toFloat()
                         Text("Direct share  ${((share * 100).roundToInt())}%", color = egPalette.muted, fontSize = 11.sp)
-                        Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(4.dp)).background(Color(0x33247E46))) {
+                        Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(4.dp)).background(egPalette.eco.copy(alpha = 0.22f))) {
                             Box(Modifier.fillMaxWidth(share).fillMaxSize().background(egPalette.eco))
                         }
                     }
@@ -553,11 +612,31 @@ private fun SelectionCard(
                     } else nearby.forEach { entry ->
                         NearbyCrewRow(entry, onClick = { onSelectNearbyCrew(entry.crew) })
                     }
-                    Text("Open in Google Maps ↗", color = egPalette.eco, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onOpenMaps(grant.latitude, grant.longitude) }.padding(vertical = 8.dp))
+                    Text("Open in Google Maps ↗", color = egPalette.eco, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { tapHaptic(); onOpenMaps(grant.latitude, grant.longitude) }.padding(vertical = 8.dp))
                 }
+            }
+                }
+            }
+            IconButton(
+                onClick = { tapHaptic(); onClose() },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(palette.glassAlt),
+            ) {
+                Icon(
+                    Icons.Rounded.Close,
+                    contentDescription = "Close details",
+                    tint = palette.muted,
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
     }
+}
+}
 }
 
 private data class NearbyCrew(val crew: CrewLocation, val distanceKm: Double) {
@@ -632,14 +711,16 @@ private fun DetailSectionTitle(text: String) {
 
 @Composable
 private fun NearbyCrewRow(entry: NearbyCrew, onClick: () -> Unit) {
+    val palette = egPalette
+    val tapHaptic = rememberTapHaptic()
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 7.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable(onClick = { tapHaptic(); onClick() }).padding(horizontal = 8.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(
             Modifier.width(8.dp).height(8.dp).clip(RoundedCornerShape(8.dp)).background(
-                if (entry.crew.status.equals("active", ignoreCase = true)) Color(0xFF247E46) else Color(0xFFC27812),
+                if (entry.crew.status.equals("active", ignoreCase = true)) palette.eco else palette.accent,
             ),
         )
         Column(Modifier.weight(1f)) {

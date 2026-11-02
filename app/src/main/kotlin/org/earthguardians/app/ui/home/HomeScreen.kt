@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -71,6 +74,7 @@ import org.earthguardians.app.ui.design.SectionTitle
 import org.earthguardians.app.ui.design.ShimmerCard
 import org.earthguardians.app.ui.design.StatTile
 import org.earthguardians.app.ui.design.egPressScale
+import org.earthguardians.app.ui.design.rememberTapHaptic
 import org.earthguardians.app.ui.root.Routes
 import org.earthguardians.app.ui.theme.egPalette
 
@@ -92,6 +96,13 @@ internal fun HomeScreen(
     val palette = egPalette
     val feed by graph.content.feed.collectAsState()
     val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    // Hero drifts down at ~1/3 scroll speed while it is on screen — light parallax.
+    val heroParallax by remember {
+        derivedStateOf {
+            if (listState.firstVisibleItemIndex == 0) listState.firstVisibleItemScrollOffset * 0.35f else 0f
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -126,14 +137,17 @@ internal fun HomeScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
+            state = listState,
             contentPadding = PaddingValues(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             item {
-                HomeHero(
-                    onExplore = { SiteCatalog.byPath("our-story")?.let(openSection) },
-                    onResources = { SiteCatalog.byPath("eg-resources")?.let(openSection) },
-                )
+                Box(Modifier.graphicsLayer { translationY = heroParallax }) {
+                    HomeHero(
+                        onExplore = { SiteCatalog.byPath("our-story")?.let(openSection) },
+                        onResources = { SiteCatalog.byPath("eg-resources")?.let(openSection) },
+                    )
+                }
             }
 
             // ── Content state ──────────────────────────────────────────
@@ -183,7 +197,10 @@ internal fun HomeScreen(
                 }
                 if (state.data.events.isNotEmpty()) {
                     item {
+                        val carouselState = rememberLazyListState()
                         LazyRow(
+                            state = carouselState,
+                            flingBehavior = rememberSnapFlingBehavior(lazyListState = carouselState),
                             contentPadding = PaddingValues(horizontal = 20.dp),
                             horizontalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
@@ -389,12 +406,16 @@ private fun HeaderIconButton(
 ) {
     val palette = egPalette
     val interaction = remember { MutableInteractionSource() }
+    val tapHaptic = rememberTapHaptic()
     Box(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
             .background(palette.glass)
-            .clickable(interactionSource = interaction, indication = null) { onClick() }
+            .clickable(interactionSource = interaction, indication = null) {
+                tapHaptic()
+                onClick()
+            }
             .egPressScale(interaction),
         contentAlignment = Alignment.Center,
     ) {

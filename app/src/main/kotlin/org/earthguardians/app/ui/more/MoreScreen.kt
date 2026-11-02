@@ -1,11 +1,14 @@
 package org.earthguardians.app.ui.more
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +51,9 @@ import org.earthguardians.app.ui.design.EmptyState
 import org.earthguardians.app.ui.design.GlassCard
 import org.earthguardians.app.ui.design.LargeTitle
 import org.earthguardians.app.ui.design.PillTone
+import org.earthguardians.app.ui.design.EgRadius
+import org.earthguardians.app.ui.design.rememberTapHaptic
+import org.earthguardians.app.ui.design.egPressScale
 import org.earthguardians.app.ui.theme.egPalette
 
 /**
@@ -173,6 +179,8 @@ internal fun MoreScreen(
 @Composable
 private fun HeaderTile(isSettings: Boolean, onClick: () -> Unit) {
     val palette = egPalette
+    val tapHaptic = rememberTapHaptic()
+    val interaction = remember { MutableInteractionSource() }
     val shape = RoundedCornerShape(14.dp)
     Box(
         modifier = Modifier
@@ -181,9 +189,13 @@ private fun HeaderTile(isSettings: Boolean, onClick: () -> Unit) {
             .clip(shape)
             .background(palette.glass, shape)
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = interaction,
                 indication = null,
-            ) { onClick() },
+            ) {
+                tapHaptic()
+                onClick()
+            }
+            .egPressScale(interaction),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -203,6 +215,7 @@ private fun GroupCard(
     onOpen: (SiteSection) -> Unit,
 ) {
     val palette = egPalette
+    val tapHaptic = rememberTapHaptic()
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -225,7 +238,10 @@ private fun GroupCard(
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                    ) { onOpen(section) }
+                    ) {
+                        tapHaptic()
+                        onOpen(section)
+                    }
                     .padding(vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -259,12 +275,15 @@ private fun GroupCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SitemapIndexCard(
     extras: List<String>,
     openUrl: (String) -> Unit,
 ) {
     val palette = egPalette
+    val tapHaptic = rememberTapHaptic()
+    val chipShape = RoundedCornerShape(EgRadius.pill)
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -278,39 +297,42 @@ private fun SitemapIndexCard(
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.weight(1f))
-            EgPill(text = "from /sitemap.xml", tone = PillTone.Green)
+            EgPill(text = "${extras.size} new pages", tone = PillTone.Green)
         }
         Text(
-            text = "Live-discovered pages that haven't curated placement yet — included automatically.",
+            text = "Live-discovered pages still waiting for curated placement — tap to open.",
             color = palette.muted,
             fontSize = 12.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
-        extras.forEach { path ->
-            val label = path.replace('-', ' ')
-                .replaceFirstChar { c -> c.uppercaseChar() }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { openUrl("https://www.earthguardians.org/$path") }
-                    .padding(vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        // Chips instead of a 160-row list: scannable, dense, still fully tappable.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            extras.forEach { path ->
+                val label = path.replace('-', ' ')
+                    .replaceFirstChar { c -> c.uppercaseChar() }
                 Text(
                     text = label,
                     color = palette.onBackground,
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 15.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    imageVector = Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    tint = palette.muted,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier
+                        .clip(chipShape)
+                        .background(palette.glassAlt, chipShape)
+                        .border(1.dp, palette.glassStroke, chipShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) {
+                            tapHaptic()
+                            openUrl("https://www.earthguardians.org/$path")
+                        }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                 )
             }
         }

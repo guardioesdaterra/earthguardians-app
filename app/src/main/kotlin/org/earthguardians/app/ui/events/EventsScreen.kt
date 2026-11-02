@@ -104,6 +104,11 @@ internal fun EventsScreen(
                         .sortedByDescending { it.startsAt ?: 0L }
                         .filter { it.title.contains(query.trim(), ignoreCase = true) || query.isBlank() }
                 }
+                if (state.isStale) {
+                    Box(Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+                        EgPill(text = "offline · showing cached events", tone = PillTone.Red)
+                    }
+                }
                 if (events.isEmpty()) {
                     Box(Modifier.padding(top = 12.dp)) {
                         EmptyState(
