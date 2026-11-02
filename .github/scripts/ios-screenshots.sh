@@ -28,9 +28,23 @@ dump_app_log() { # placed in CI log + artifact; mirrors the Android contract
     --predicate 'process == "EarthGuardians"' 2>&1 \
     | grep -viE "AudioSession|MediaRemote|network connection|CoreText" \
     | tail -100 | tee -a "$LOG" || true
-  # Crash reports land on the HOST for simulator apps — copy any fresh ones.
+  # Crash reports land on the HOST for simulator apps. ReportCrash latency can
+  # exceed the death-detection moment — poll for up to a minute so a real
+  # crash produces evidence instead of a bare "process died".
   echo "[shots][ERROR] — fresh DiagnosticReports (if any):" | tee -a "$LOG"
-  find ~/Library/Logs/DiagnosticReports -mmin -5 -name "EarthGuardians*" -print -exec sh -c 'echo "== $1"; head -60 "$1"' _ {} \; 2>/dev/null | tee -a "$LOG" || true
+  local waited=0 report=""
+  while [ "$waited" -lt 60 ]; do
+    report=$(find ~/Library/Logs/DiagnosticReports -mmin -5 -name "EarthGuardians*" -print -exec sh -c 'echo "== $1"; head -60 "$1"' _ {} \; 2>/dev/null | tail -1)
+    if [ -n "$report" ]; then
+      find ~/Library/Logs/DiagnosticReports -mmin -5 -name "EarthGuardians*" -print -exec sh -c 'echo "== $1"; head -60 "$1"' _ {} \; 2>/dev/null | tee -a "$LOG" || true
+      break
+    fi
+    sleep 10
+    waited=$((waited + 10))
+  done
+  if [ -z "$report" ]; then
+    echo "[shots][ERROR] — no DiagnosticReports appeared within 60s (likely simulator instability, not a crash)" | tee -a "$LOG"
+  fi
 }
 
 alive() { # 0 if the app currently has a running process on the simulator
@@ -79,6 +93,13 @@ xcrun simctl launch "$UDID" "$PKG" -onboarding_complete 0 -eg_launch_route "$ONB
   || { dump_app_log "app failed to launch into onboarding"; exit 1; }
 sleep 7
 if ! alive; then
+  echo "[shots] app missing after first launch, retrying onboarding once…"
+  xcrun simctl terminate "$UDID" "$PKG" >/dev/null 2>&1 || true
+  xcrun simctl launch "$UDID" "$PKG" -onboarding_complete 0 -eg_launch_route "$ONBOARDING_DIRECT_ROUTE" \
+    || { dump_app_log "app failed on retry into onboarding"; exit 1; }
+  sleep 7
+fi
+if ! alive; then
   dump_app_log "app process died during onboarding capture"
   exit 1
 fi
@@ -104,6 +125,16 @@ for entry in "${SCREENS[@]}"; do
     -onboarding_complete 1 -eg_launch_route "$route" \
     || { dump_app_log "app failed to launch for $name (route $route)"; exit 1; }
   sleep 7
+  # The CI VM occasionally reaps a fresh simulator process before it settles —
+  # one clean relaunch before declaring the screen dead.
+  if ! alive; then
+    echo "[shots] app missing after first launch, retrying screen $name once…"
+    xcrun simctl terminate "$UDID" "$PKG" >/dev/null 2>&1 || true
+    xcrun simctl launch "$UDID" "$PKG" \
+      -onboarding_complete 1 -eg_launch_route "$route" \
+      || { dump_app_log "app failed on retry for $name (route $route)"; exit 1; }
+    sleep 7
+  fi
   if ! alive; then
     dump_app_log "app process died after launch (screen $name, route $route)"
     exit 1
