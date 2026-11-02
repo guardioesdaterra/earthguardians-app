@@ -5,16 +5,19 @@ import { officialHomeFeedImage } from '../utils/officialHomeFeedImages'
 const { events, posts, status, stale, refreshing, error, refreshFeed } = useEgFeed()
 const config = useRuntimeConfig()
 const base = String(config.app.baseURL || '/').replace(/\/?$/, '/')
-const heroCollagePhotos = [
+// Same owner-approved photo order as the native OfficialSiteImages.COLLAGE
+// (community, benin, leaves, fieldwork, youth, climate).
+const collageCatalog = [
+  'eg_home_community.jpg',
   'eg_home_benin_action.jpg',
   'eg_home_leaves.jpg',
   'eg_home_fieldwork.jpg',
   'eg_home_youth_gathering.jpg',
   'eg_home_climate_action.jpg',
-  'eg_home_community.jpg',
-  'eg_home_benin_action.jpg',
-  'eg_home_leaves.jpg',
 ]
+// Home wallpaper offset by one — mirrors the native `OfficialSitePhotoCollage(page: 1)`.
+const heroCollageTiles = Array.from({ length: 8 }, (_, tile) => collageCatalog[(tile + 1) % collageCatalog.length])
+const heroCollageRows = [heroCollageTiles.slice(0, 4), heroCollageTiles.slice(4)]
 const featuredEvents = computed(() => events.value.slice(0, 8).map(event => {
   const localImage = officialHomeFeedImage('event', event.url, base)
   return {
@@ -55,14 +58,20 @@ useHead({ title: 'Home · Earth Guardians' })
     <section class="home-hero" aria-label="Earth Guardians mission">
       <img class="home-hero-photo" :src="`${base}official-home/eg_home_benin_action.jpg`" alt="Young Earth Guardians taking action in Benin" fetchpriority="high">
       <div class="home-hero-collage" aria-hidden="true">
-        <img
-          v-for="(photo, index) in heroCollagePhotos"
-          :key="`${photo}-${index}`"
-          class="home-hero-collage-photo"
-          :class="`home-hero-collage-photo--${index}`"
-          :src="`${base}official-home/${photo}`"
-          alt=""
+        <div
+          v-for="(row, rowIndex) in heroCollageRows"
+          :key="rowIndex"
+          class="home-hero-collage-row"
+          :class="{ 'home-hero-collage-row--shifted': rowIndex === 1 }"
         >
+          <img
+            v-for="(photo, tile) in row"
+            :key="`${rowIndex}-${tile}`"
+            class="home-hero-collage-photo"
+            :src="`${base}official-home/${photo}`"
+            alt=""
+          >
+        </div>
       </div>
       <div class="home-hero-shade"></div>
       <div class="home-hero-copy">

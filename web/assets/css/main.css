@@ -81,22 +81,8 @@ p { color: var(--muted); line-height: 1.55; }
 .button-primary { background: var(--green); color: var(--on-green); }
 .button-secondary { border-color: var(--line); background: var(--surface-2); color: var(--ink); }
 .button-primary:hover, .button-secondary:hover { transform: translateY(-1px); }
-.content-card, .resource-card, .settings-card, .empty-card { overflow: hidden; border: 1px solid var(--line); border-radius: 21px; background: var(--surface); box-shadow: var(--shadow); }
-.card-grid, .resource-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.content-card { display: flex; flex-direction: column; min-width: 0; transition: transform .2s ease, box-shadow .2s ease; }
-.content-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
-.card-image { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: var(--surface-2); }
-.card-body { display: grid; gap: 9px; padding: 17px; }
+.settings-card { overflow: hidden; border: 1px solid var(--line); border-radius: 21px; background: var(--surface); box-shadow: var(--shadow); }
 .card-meta { color: var(--muted); font-size: 12px; font-weight: 600; }
-.card-body h3 { margin: 0; }
-.card-body p { display: -webkit-box; margin: 0; overflow: hidden; font-size: 13px; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
-.resource-card { display: grid; gap: 9px; padding: 19px; transition: transform .18s ease, border-color .18s ease; }
-.resource-card:hover { transform: translateY(-3px); border-color: var(--green); }
-.resource-icon { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 13px; background: color-mix(in srgb, var(--green) 13%, var(--surface)); color: var(--green-ink); font-size: 19px; font-weight: 900; }
-.resource-card p { margin: 0; font-size: 13px; }
-.quote-card { padding: clamp(22px, 4vw, 38px); border: 1px solid var(--line); border-radius: 24px; background: var(--surface-2); }
-.quote-card blockquote { max-width: 820px; margin: 0; font-size: clamp(21px, 3.2vw, 31px); line-height: 1.28; font-weight: 700; letter-spacing: -.03em; }
-.quote-card cite { display: block; margin-top: 15px; color: var(--muted); font-size: 12px; font-style: normal; }
 .detail-card { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 24px; align-items: center; padding: 20px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); }
 .detail-card img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 17px; background: var(--surface-2); }
 .detail-copy { padding: 10px; }
@@ -104,7 +90,6 @@ p { color: var(--muted); line-height: 1.55; }
 .theme-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 4px; border-radius: 15px; background: var(--surface-2); }
 .theme-option { min-height: 40px; padding: 0 10px; border: 1px solid transparent; border-radius: 11px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; }
 .theme-option.active { border-color: var(--line); background: var(--surface); color: var(--ink); box-shadow: 0 2px 7px rgba(0,0,0,.05); }
-.app-footer { padding: 26px 0 5px; color: var(--muted); font-size: 12px; text-align: center; }
 
 /* Native-aligned mobile application shell */
 .bottom-nav { position: fixed; z-index: 30; right: 50%; bottom: max(10px, calc(env(safe-area-inset-bottom) + 10px)); display: flex; gap: 3px; width: min(calc(100% - 28px), 620px); padding: 0 9px; transform: translateX(50%); border: 1px solid var(--line); border-radius: 24px; background: color-mix(in srgb, var(--surface-2) 96%, transparent); box-shadow: 0 5px 18px rgba(0,0,0,.08); backdrop-filter: blur(22px); }
@@ -127,16 +112,13 @@ p { color: var(--muted); line-height: 1.55; }
 .home-page { gap: 20px; }
 .home-hero { position: relative; height: 300px; overflow: hidden; isolation: isolate; border-radius: 24px; background: linear-gradient(120deg, color-mix(in srgb, var(--green) 40%, transparent), var(--surface-2)); }
 .home-hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .46; }
-.home-hero-collage { position: absolute; z-index: 1; inset: 0; overflow: hidden; pointer-events: none; }
-.home-hero-collage-photo { position: absolute; width: auto; height: auto; border-radius: 16px; object-fit: cover; opacity: .15; }
-.home-hero-collage-photo--0 { top: 96px; left: -54px; width: 190px; height: 132px; transform: rotate(-7deg); }
-.home-hero-collage-photo--1 { top: 112px; right: -52px; width: 178px; height: 124px; transform: rotate(10deg); }
-.home-hero-collage-photo--2 { top: calc(50% - 67px); left: -62px; width: 175px; height: 126px; transform: rotate(8deg); }
-.home-hero-collage-photo--3 { top: calc(50% - 61px); right: -56px; width: 196px; height: 134px; transform: rotate(-5deg); }
-.home-hero-collage-photo--4 { bottom: -82px; left: -52px; width: 205px; height: 140px; transform: rotate(9deg); }
-.home-hero-collage-photo--5 { right: -48px; bottom: -90px; width: 190px; height: 132px; transform: rotate(-6deg); }
-.home-hero-collage-photo--6 { top: calc(50% - 66px); left: calc(50% - 94px); width: 188px; height: 132px; transform: rotate(5deg); }
-.home-hero-collage-photo--7 { top: -64px; left: calc(50% - 85px); width: 170px; height: 116px; transform: rotate(-2deg); }
+/* Brick-bond wallpaper: tiles align edge-to-edge (never overlap or rotate); the
+   lower row is offset half a tile and bleeds past the rounded corner — same
+   composition as the native OfficialSitePhotoCollage(page: 1). */
+.home-hero-collage { position: absolute; z-index: 1; inset: 0; display: flex; flex-direction: column; gap: 6px; overflow: hidden; pointer-events: none; }
+.home-hero-collage-row { display: grid; flex: 1; min-height: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.home-hero-collage-row--shifted { transform: translateX(calc((100% - 18px) / 8)); }
+.home-hero-collage-photo { width: 100%; height: 100%; border-radius: 16px; object-fit: cover; opacity: .15; }
 .home-hero-shade { position: absolute; z-index: 2; inset: 0; background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.24) 50%, rgba(0,0,0,.92) 100%); }
 .home-hero-copy { position: absolute; z-index: 3; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 20px; color: #fff; }
 .home-eyebrow { color: var(--green); font-size: 11px; line-height: 1.25; font-weight: 700; letter-spacing: 1.1px; }
@@ -360,7 +342,6 @@ p { color: var(--muted); line-height: 1.55; }
   .brand-copy strong { font-size: 12px; }
   .page-heading { align-items: start; flex-direction: column; }
   .detail-card { grid-template-columns: 1fr; gap: 12px; }
-  .card-grid, .resource-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .map-frame { height: clamp(390px, 57vh, 620px); }
 }
 @media (max-width: 460px) {
@@ -379,13 +360,7 @@ p { color: var(--muted); line-height: 1.55; }
   .home-section-heading > a { font-size: 15px; }
   .home-event-card { flex-basis: 240px; }
   .home-story-row > img, .home-story-placeholder { flex-basis: 72px; width: 72px; height: 72px; }
-  .card-grid, .resource-grid { grid-template-columns: 1fr; }
-  .content-card { display: grid; grid-template-columns: 105px 1fr; min-height: 128px; }
-  .card-image { height: 100%; min-height: 128px; aspect-ratio: auto; }
-  .card-body { align-content: center; gap: 6px; padding: 12px; }
-  .card-body p { -webkit-line-clamp: 2; }
   .card-meta { font-size: 10px; }
-  .card-body h3 { font-size: 15px; }
   .bottom-nav { width: calc(100% - 28px); padding: 0 6px; }
   .nav-item { min-height: 64px; gap: 3px; font-size: 10px; }
   .nav-icon { width: 22px; height: 22px; }
@@ -402,6 +377,12 @@ p { color: var(--muted); line-height: 1.55; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* Nuxt page transition (configured in nuxt.config.ts) — quiet fade+rise,
+   automatically disabled by the reduced-motion block above. */
+.page-enter-active, .page-leave-active { transition: opacity .16s ease, transform .16s ease; }
+.page-enter-from { opacity: 0; transform: translateY(5px); }
+.page-leave-to { opacity: 0; }
 
 .home-feed-skeleton { display: grid; gap: 12px; }
 .home-skeleton-title, .home-skeleton-event, .home-skeleton-story { display: block; border-radius: 18px; background: linear-gradient(90deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 58%, var(--surface)), var(--surface-2)); background-size: 200% 100%; animation: shimmer 1.2s infinite linear; }
