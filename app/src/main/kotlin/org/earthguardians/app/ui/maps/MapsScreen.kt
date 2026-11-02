@@ -14,6 +14,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -48,6 +49,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -200,7 +202,6 @@ internal fun MapsScreen(
     var selected by remember { mutableStateOf<MapSelection?>(null) }
     // Bumping this key re-runs the (local, no-network) repository load after a failure.
     var loadKey by remember { mutableIntStateOf(0) }
-    val tapHaptic = rememberTapHaptic()
 
     LaunchedEffect(loadKey) {
         state = runCatching { MapAssetRepository(context).load() }
@@ -294,15 +295,16 @@ private sealed interface MapSelection {
 private enum class MarkerAppearance(
     val color: Int,
     val label: String,
-    val letterColor: Int = 0xFFFFFFFF,
+    val letterColor: Int = 0xFFFFFFFF.toInt(),
     val markerSizeDp: Int = 44,
 ) {
     ActiveCrew(0xFF34C759.toInt(), "C"),
     InactiveCrew(0xFFFF3B30.toInt(), "C"),
     RegionAggregate(0xFFFFFFFF.toInt(), "R", letterColor = 0xFF050505.toInt(), markerSizeDp = 48),
-    Grant(0xFF34C759.toInt(), "G"),
+    // Grant tiers stay inside the EG palette: white → green → red as impact grows.
+    Grant(0xFFFFFFFF.toInt(), "G", letterColor = 0xFF050505.toInt()),
     GrantMedium(0xFF34C759.toInt(), "G", markerSizeDp = 48),
-    GrantLarge(0xFF34C759.toInt(), "G", markerSizeDp = 52),
+    GrantLarge(0xFFFF3B30.toInt(), "G", markerSizeDp = 52),
 }
 
 @Composable
@@ -423,6 +425,7 @@ private fun NativeMapPanel(
     val context = LocalContext.current
     val controller = remember { NativeMapController() }
     val normalizedQuery = query.trim().lowercase()
+    val tapHaptic = rememberTapHaptic()
 
     Box(modifier = modifier.fillMaxWidth().navigationBarsPadding(), contentAlignment = Alignment.BottomCenter) {
         AndroidView(
@@ -444,7 +447,7 @@ private fun NativeMapPanel(
                 SelectionCard(
                     selection = selected,
                     data = data,
-                    onClose = { tapHaptic(); selected = null },
+                    onClose = { tapHaptic(); onSelected(null) },
                     onOpenMaps = { latitude, longitude ->
                         runCatching {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps?q=$latitude,$longitude")))

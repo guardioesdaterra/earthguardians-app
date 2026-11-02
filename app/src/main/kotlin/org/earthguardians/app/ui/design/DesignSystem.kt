@@ -20,7 +20,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.offset
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -274,6 +274,11 @@ fun EgSegmentedControl(
                 options.forEachIndexed { index, option ->
                     val selected = index == selectedIndex
                     val interaction = rememberPressInteraction()
+                    val labelColor by animateColorAsState(
+                        targetValue = if (selected) palette.background else palette.muted,
+                        animationSpec = tween(180),
+                        label = "egSegmentedLabel$index",
+                    )
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -290,11 +295,7 @@ fun EgSegmentedControl(
                     ) {
                         Text(
                             text = option,
-                            color = animateColorAsState(
-                                targetValue = if (selected) palette.background else palette.muted,
-                                animationSpec = tween(180),
-                                label = "egSegmentedLabel$index",
-                            ),
+                            color = labelColor,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
