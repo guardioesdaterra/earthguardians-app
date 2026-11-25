@@ -111,14 +111,7 @@ p { color: var(--muted); line-height: 1.55; }
 /* Home: measured to the Android screenshot baseline (300dp hero, 240dp carousel). */
 .home-page { gap: 20px; }
 .home-hero { position: relative; height: 300px; overflow: hidden; isolation: isolate; border-radius: 24px; background: linear-gradient(120deg, color-mix(in srgb, var(--green) 40%, transparent), var(--surface-2)); }
-.home-hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .46; }
-/* Brick-bond wallpaper: tiles align edge-to-edge (never overlap or rotate); the
-   lower row is offset half a tile and bleeds past the rounded corner — same
-   composition as the native OfficialSitePhotoCollage(page: 1). */
-.home-hero-collage { position: absolute; z-index: 1; inset: 0; display: flex; flex-direction: column; gap: 6px; overflow: hidden; pointer-events: none; }
-.home-hero-collage-row { display: grid; flex: 1; min-height: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.home-hero-collage-row--shifted { transform: translateX(calc((100% - 18px) / 8)); }
-.home-hero-collage-photo { width: 100%; height: 100%; border-radius: 16px; object-fit: cover; opacity: .15; }
+.home-hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .home-hero-shade { position: absolute; z-index: 2; inset: 0; background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.24) 50%, rgba(0,0,0,.92) 100%); }
 .home-hero-copy { position: absolute; z-index: 3; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 20px; color: #fff; }
 .home-eyebrow { color: var(--green); font-size: 11px; line-height: 1.25; font-weight: 700; letter-spacing: 1.1px; }
@@ -299,14 +292,8 @@ p { color: var(--muted); line-height: 1.55; }
 .onboarding-brand strong { font-size: 12px; letter-spacing: .16em; }
 .onboarding-content { display: grid; align-content: center; gap: 17px; padding: 8px 0; }
 .onboarding-art { position: relative; height: clamp(190px, 29vh, 280px); overflow: hidden; border-radius: 23px; background: var(--surface-2); isolation: isolate; }
-.onboarding-feature-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .45; }
-.onboarding-art--1 .onboarding-feature-image { opacity: .76; }
+.onboarding-feature-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .onboarding-art::after { position: absolute; z-index: 1; inset: 0; content: ''; background: linear-gradient(0deg, rgba(0,0,0,.55), transparent 60%); }
-.onboarding-photo-grid, .onboarding-photo-band, .onboarding-photo-strip { position: absolute; z-index: 1; display: grid; gap: 7px; }
-.onboarding-photo-grid { inset: 16px; grid-template-columns: repeat(2,1fr); grid-template-rows: repeat(2,1fr); opacity: .7; }
-.onboarding-photo-band { right: 12px; bottom: 14px; left: 12px; grid-template-columns: 1fr 1.3fr 1fr; height: 86px; }
-.onboarding-photo-strip { right: 12px; bottom: 14px; left: 12px; grid-template-columns: repeat(3,1fr); height: 72px; }
-.onboarding-photo-grid img, .onboarding-photo-band img, .onboarding-photo-strip img { width: 100%; height: 100%; border-radius: 13px; object-fit: cover; }
 .onboarding-copy { display: grid; gap: 10px; }
 .onboarding-copy h1 { margin: 0; white-space: pre-line; font-size: 32px; line-height: 1.12; font-weight: 850; letter-spacing: -.04em; }
 .onboarding-copy > p { margin: 0; font-size: 15px; line-height: 1.5; }

@@ -61,7 +61,6 @@ import org.earthguardians.app.data.repo.SiteCatalog
 import org.earthguardians.app.graph.AppGraph
 import org.earthguardians.app.ui.common.EgImage
 import org.earthguardians.app.ui.common.OfficialSiteImages
-import org.earthguardians.app.ui.common.OfficialSitePhotoCollage
 import org.earthguardians.app.ui.common.PostRowCard
 import org.earthguardians.app.ui.design.BentoTile
 import org.earthguardians.app.ui.design.EgPrimaryButton
@@ -352,9 +351,8 @@ private fun HomeHero(onExplore: () -> Unit, onResources: () -> Unit) {
             painter = painterResource(OfficialSiteImages.BENIN_ACTION),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 0.46f },
+            modifier = Modifier.fillMaxSize(),
         )
-        OfficialSitePhotoCollage(page = 1, modifier = Modifier.fillMaxSize(), opacity = 0.15f)
         Box(
             Modifier
                 .fillMaxSize()

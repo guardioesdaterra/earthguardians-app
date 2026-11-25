@@ -11,8 +11,6 @@ internal object OfficialSiteImages {
     val YOUTH_GATHERING = R.drawable.eg_home_youth_gathering
     val CLIMATE_ACTION = R.drawable.eg_home_climate_action
 
-    val COLLAGE = listOf(COMMUNITY, BENIN_ACTION, LEAVES, FIELDWORK, YOUTH_GATHERING, CLIMATE_ACTION)
-
     fun featuredEvent(url: String): Int? = when {
         url.substringBefore('?').trimEnd('/').endsWith("/events/2025/6/14/project-grant-summit") ->
             R.drawable.eg_feed_event_project_grant_summit

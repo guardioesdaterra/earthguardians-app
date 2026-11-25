@@ -11,7 +11,6 @@ const base = String(config.app.baseURL || '/').replace(/\/?$/, '/')
 const { resolvedTheme } = useEgTheme()
 const logoSrc = computed(() => `${base}official-home/eg_brand_mark_on_${resolvedTheme.value}.png`)
 const { requestAlertPermission, setAlertsEnabled } = useEgNotifications()
-const photos = ['eg_home_community.jpg', 'eg_home_benin_action.jpg', 'eg_home_leaves.jpg', 'eg_home_fieldwork.jpg', 'eg_home_youth_gathering.jpg', 'eg_home_climate_action.jpg']
 const slides = [
   { title: 'Join a global\nclimate community', body: 'Your network of climate leaders, created for youth by youth.', feature: 'Youth-led across six continents', image: 'eg_home_community.jpg', alt: 'Young people and adults gathered outdoors beneath green trees.' },
   { title: 'Turn local ideas\ninto action', body: 'Explore crews, campaigns, events, and resources led by young people.', feature: 'Find or start a crew', image: 'eg_home_benin_action.jpg', alt: 'A youth climate leader speaking through a megaphone from a boat.' },
@@ -48,11 +47,8 @@ async function finish(askForAlerts: boolean) {
     <div class="onboarding-shell">
       <div class="onboarding-brand"><img :src="logoSrc" alt="" width="32" height="32"><strong>EARTH GUARDIANS</strong></div>
       <div class="onboarding-content" aria-live="polite">
-        <div class="onboarding-art" :class="`onboarding-art--${step}`">
+        <div class="onboarding-art">
           <img class="onboarding-feature-image" :src="`${base}official-home/${current.image}`" :alt="current.alt">
-          <div v-if="step === 0" class="onboarding-photo-grid" aria-hidden="true"><img v-for="(photo, index) in photos.slice(0, 4)" :key="index" :src="`${base}official-home/${photo}`" alt=""></div>
-          <div v-else-if="step === 2" class="onboarding-photo-band" aria-hidden="true"><img v-for="(photo, index) in [photos[2], photos[3], photos[4]]" :key="index" :src="`${base}official-home/${photo}`" alt=""></div>
-          <div v-else-if="step === 3" class="onboarding-photo-strip" aria-hidden="true"><img v-for="(photo, index) in photos.slice(0, 3)" :key="index" :src="`${base}official-home/${photo}`" alt=""></div>
         </div>
         <div class="onboarding-copy">
           <h1>{{ current.title }}</h1>

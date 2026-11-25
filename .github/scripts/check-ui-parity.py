@@ -20,6 +20,9 @@ ANDROID_IMAGES = ROOT / "app/src/main/kotlin/org/earthguardians/app/ui/common/Of
 IOS_IMAGES = ROOT / "ios/EarthGuardians/UI/Common/OfficialSiteImages.swift"
 ANDROID_COLLAGE = ROOT / "app/src/main/kotlin/org/earthguardians/app/ui/common/OfficialSitePhotoCollage.kt"
 IOS_COLLAGE = ROOT / "ios/EarthGuardians/UI/Common/OfficialSitePhotoCollage.swift"
+WEB_HOME = ROOT / "web/components/HomePage.vue"
+WEB_ONBOARDING = ROOT / "web/components/OnboardingGate.vue"
+WEB_CSS = ROOT / "web/assets/css/main.css"
 ANDROID_HOME = ROOT / "app/src/main/kotlin/org/earthguardians/app/ui/home/HomeScreen.kt"
 IOS_HOME = ROOT / "ios/EarthGuardians/UI/Home/HomeScreen.swift"
 ANDROID_ACTIVITY = ROOT / "app/src/main/kotlin/org/earthguardians/app/MainActivity.kt"
@@ -125,32 +128,8 @@ def check_image_catalog(matrix: dict) -> tuple[dict[str, str], dict[str, str]]:
         require(urlparse(source_urls[0]).hostname == matrix["approved_image_host"],
                 f"unapproved official image host for {key}: {source_urls[0]}")
 
-    android_list = re.search(r"\bCOLLAGE\s*=\s*listOf\((.*?)\)", android_text, re.DOTALL)
-    ios_list = re.search(r"\bstatic let collage\s*=\s*\[(.*?)\]", ios_text, re.DOTALL)
-    require(android_list is not None, "Android official image catalog must expose COLLAGE")
-    require(ios_list is not None, "iOS official image catalog must expose collage")
-    expected_android = [image["android_symbol"] for image in images]
-    expected_ios = [image["ios_symbol"] for image in images]
-    require(re.findall(r"\b[A-Z][A-Z_]+\b", android_list.group(1)) == expected_android,
-            "Android collage image order differs from the documented set")
-    require(re.findall(r"\b[a-z][A-Za-z0-9]*\b", ios_list.group(1)) == expected_ios,
-            "iOS collage image order differs from the documented set")
-
-    android_collage = read_text(ANDROID_COLLAGE)
-    ios_collage = read_text(IOS_COLLAGE)
-    require("OfficialSiteImages.COLLAGE[" in android_collage and "alpha = opacity" in android_collage,
-            "Android photo collage must render from the shared catalog with caller-controlled opacity")
-    require("OfficialSiteImages.collage[" in ios_collage and ".opacity(opacity)" in ios_collage,
-            "iOS photo collage must render from the shared catalog with caller-controlled opacity")
-    default_opacity = matrix["onboarding"]["collage_opacity"]["default_background"]
-    require(f"opacity: Float = {default_opacity}f" in android_collage,
-            "Android photo collage background opacity must default to 7.5%")
-    require(f"var opacity: Double = {default_opacity}" in ios_collage,
-            "iOS photo collage background opacity must default to 7.5%")
-    require("contentDescription = null" in android_collage,
-            "Android collage photos must remain decorative to accessibility")
-    require(".accessibilityHidden(true)" in ios_collage,
-            "iOS collage photos must remain decorative to accessibility")
+    require(not ANDROID_COLLAGE.exists() and not IOS_COLLAGE.exists(),
+            "the retired multi-image photo collage components must stay deleted")
     return android_key_by_symbol, ios_key_by_symbol
 
 
@@ -166,8 +145,8 @@ def check_image_views(matrix: dict, android_key_by_symbol: dict[str, str], ios_k
             "Android home hero must use the documented official image")
     require(f"Image(OfficialSiteImages.{hero['ios_symbol']})" in ios_home,
             "iOS home hero must use the documented official image")
-    require("OfficialSitePhotoCollage(" in android_home and "OfficialSitePhotoCollage(" in ios_home,
-            "both home screens must include the official photo collage")
+    require("OfficialSitePhotoCollage" not in android_home and "OfficialSitePhotoCollage" not in ios_home,
+            "home hero must render a single photo, not the retired photo collage")
 
     android_refs = re.findall(r"imageRes\s*=\s*OfficialSiteImages\.([A-Z_]+)", android)
     ios_refs = re.findall(r"imageName\s*[=:]\s*OfficialSiteImages\.([A-Za-z][A-Za-z0-9]*)", ios)
@@ -184,15 +163,16 @@ def check_image_views(matrix: dict, android_key_by_symbol: dict[str, str], ios_k
     require("Brush.verticalGradient" in android and "LinearGradient(" in ios,
             "onboarding photo panels need text-legibility gradients on both platforms")
 
-    opacity = onboarding["collage_opacity"]
-    require(f"opacity = {opacity['home_hero']:.2f}f" in android_home and f"opacity: {opacity['home_hero']:.2f}" in ios_home,
-            "home hero collage opacity must remain 15% on both platforms")
-    require(f"alpha = {onboarding['home_hero_photo_alpha']:.2f}f" in android_home and
-            f".opacity({onboarding['home_hero_photo_alpha']:.2f})" in ios_home,
-            "home hero photo alpha must remain aligned across platforms")
+    require(onboarding["home_hero_photo_alpha"] == 1.0,
+            "the single home hero photo must be specified at full opacity")
+    require("alpha = 0.46f" not in android_home and ".opacity(0.46)" not in ios_home,
+            "home hero photo must render at full opacity on both platforms")
+    require("home-hero-collage" not in read_text(WEB_CSS) and
+            "home-hero-collage" not in read_text(WEB_HOME),
+            "PWA home hero must render a single photo, not a collage")
 
     check_onboarding_photo_sources(android, ios)
-    check_onboarding_photo_layouts(matrix, android_key_by_symbol, ios_key_by_symbol, android, ios)
+    check_onboarding_photo_layouts(matrix, android, ios)
 
 
 def check_onboarding_photo_sources(android: str, ios: str) -> None:
@@ -275,32 +255,14 @@ def check_home_logo(matrix: dict) -> None:
             "Android and iOS Home logo variants must use matching local image bytes")
 
 
-def check_onboarding_photo_layouts(
-    matrix: dict,
-    android_key_by_symbol: dict[str, str],
-    ios_key_by_symbol: dict[str, str],
-    android: str,
-    ios: str,
-) -> None:
+def check_onboarding_photo_layouts(matrix: dict, android: str, ios: str) -> None:
     onboarding = matrix["onboarding"]
     layout = onboarding["photo_layouts"]
     images_by_key = {image["key"]: image for image in matrix["official_images"]}
     android_slides = source_section(
-        android, "private val slides = listOf(", "\nprivate val onboardingGridImages", "Android onboarding slide list")
-    grid_keys = onboarding["photo_grid_images"]
+        android, "private val slides = listOf(", "\n@Composable\ninternal fun OnboardingScreen(",
+        "Android onboarding slide list")
     expected_catalog_order = [image["key"] for image in matrix["official_images"]]
-    require(grid_keys == expected_catalog_order,
-            "onboarding photo strip must use the complete six-photo local catalog in order")
-    expected_android_grid = [images_by_key[key]["android_symbol"] for key in grid_keys]
-
-    android_grid_list = re.search(r"private val onboardingGridImages\s*=\s*listOf\((.*?)\)", android, re.DOTALL)
-    require(android_grid_list is not None, "Android onboarding must define its local photo-strip image list")
-    android_grid_symbols = re.findall(r"OfficialSiteImages\.([A-Z_]+)", android_grid_list.group(1))
-    require(android_grid_symbols == expected_android_grid and
-            [android_key_by_symbol.get(symbol) for symbol in android_grid_symbols] == grid_keys,
-            "Android onboarding photo strip must reference the six bundled catalog photos in matrix order")
-    require([ios_key_by_symbol.get(image["ios_symbol"]) for image in matrix["official_images"]] == grid_keys,
-            "iOS onboarding photo strip must use the six bundled catalog photos in matrix order")
 
     banned_patterns = [
         (r"\.position\(", "freeform .position placement"),
@@ -313,190 +275,115 @@ def check_onboarding_photo_layouts(
             require(re.search(pattern, source) is None, f"{label} must stay free of {description}")
 
     android_backdrop = source_section(
-        android, "private fun OnboardingBackdrop(", "private fun OnboardingPhotoGrid(", "Android onboarding backdrop")
-    android_wallpaper = source_section(
-        android, "private fun OnboardingPhotoGrid(", "private fun onboardingPillarIndexes(", "Android wallpaper photo grid")
-    android_pillar_indexes = source_section(
-        android, "private fun onboardingPillarIndexes(", "private fun OnboardingPillarWall(", "Android pillar photo map")
-    android_pillar_wall = source_section(
-        android, "private fun OnboardingPillarWall(", "private fun OnboardingFullBleed(", "Android pillar wall")
-    android_full_bleed = source_section(
-        android, "private fun OnboardingFullBleed(", "private fun OnboardingShowcase(", "Android live full-bleed backdrop")
+        android, "private fun OnboardingBackdrop(", "private fun OnboardingPhotoShowcase(",
+        "Android onboarding backdrop")
     android_showcase = source_section(
-        android, "private fun OnboardingShowcase(", "private fun OnboardingCaptionChip(", "Android showcase selector")
+        android, "private fun OnboardingPhotoShowcase(", "private fun OnboardingCaptionChip(",
+        "Android onboarding showcase")
     android_chip = source_section(
-        android, "private fun OnboardingCaptionChip(", "private fun OnboardingMosaicShowcase(", "Android glass caption chip")
-    android_mosaic = source_section(
-        android, "private fun OnboardingMosaicShowcase(", "private fun OnboardingFilmstripShowcase(", "Android bento mosaic showcase")
-    android_filmstrip = source_section(
-        android, "private fun OnboardingFilmstripShowcase(", "private fun OnboardingFeatureDeckShowcase(", "Android filmstrip showcase")
-    android_deck = source_section(
-        android, "private fun OnboardingFeatureDeckShowcase(", "private fun OnboardingSpotlightShowcase(", "Android feature deck showcase")
-    android_spotlight = source_section(
-        android, "private fun OnboardingSpotlightShowcase(", "private fun OnboardingTile(", "Android spotlight showcase")
+        android, "private fun OnboardingCaptionChip(", "private fun OnboardingTile(", "Android glass caption chip")
     android_tile = source_section(
-        android, "private fun OnboardingTile(", "/** Exposed for tests", "Android pressable photo tile")
+        android, "private fun OnboardingTile(", "/** Exposed for tests", "Android photo tile")
 
-    ios_slide_view = source_section(
-        ios, "private func slideView(_ slide:", "private func slideArtwork(_ slide:", "iOS onboarding slide view")
     ios_artwork = source_section(
-        ios, "private func slideArtwork(_ slide:", "private func mosaicArtwork(_ slide:", "iOS showcase selector")
-    ios_mosaic = source_section(
-        ios, "private func mosaicArtwork(_ slide:", "private var filmstripArtwork", "iOS bento mosaic showcase")
-    ios_filmstrip = source_section(
-        ios, "private var filmstripArtwork", "private func deckArtwork(_ slide:", "iOS filmstrip showcase")
-    ios_deck = source_section(
-        ios, "private func deckArtwork(_ slide:", "private func spotlightArtwork(_ slide:", "iOS feature deck showcase")
-    ios_spotlight = source_section(
-        ios, "private func spotlightArtwork(_ slide:", "private func captionChip(", "iOS spotlight showcase")
+        ios, "private func slideArtwork(_ slide:", "private func captionChip(", "iOS onboarding showcase")
     ios_chip = source_section(
-        ios, "private func captionChip(", "private struct PulseDot: View", "iOS glass caption chip")
+        ios, "private func captionChip(", "private func photoTile(", "iOS glass caption chip")
     ios_tile = source_section(
-        ios, "private func photoTile(", "private var onboardingBackdrop", "iOS pressable photo tile")
+        ios, "private func photoTile(", "private var onboardingBackdrop", "iOS photo tile")
     ios_backdrop = source_section(
         ios, "private var onboardingBackdrop: some View", "private var canopyGlow", "iOS onboarding backdrop")
-    ios_grid_source = read_text(IOS_COLLAGE)
-    ios_wallpaper = source_section(
-        ios_grid_source, "struct OfficialSitePhotoGrid: View", "struct OfficialSitePhotoCollage: View", "iOS wallpaper photo grid")
 
-    require("0 -> OnboardingMosaicShowcase(" in android_showcase and
-            "1 -> OnboardingFilmstripShowcase(" in android_showcase and
-            "2 -> OnboardingFeatureDeckShowcase(" in android_showcase and
-            "else -> OnboardingSpotlightShowcase(" in android_showcase,
-            "Android showcase selector must map each slide to its own showcase type")
-    require("mosaicArtwork(slide)" in ios_artwork and "filmstripArtwork" in ios_artwork and
-            "deckArtwork(slide)" in ios_artwork and "spotlightArtwork(slide)" in ios_artwork,
-            "iOS showcase selector must map each slide to its own showcase type")
+    # Backdrop: exactly one full-bleed photo per page behind a single legibility scrim.
+    backdrop_opacity = layout["backdrop_opacity"]
+    scrim_top = layout["backdrop_scrim_top"]
+    scrim_bottom = layout["backdrop_scrim_bottom"]
+    require("slides[backgroundPage].backdropRes" in android_backdrop and
+            f"alpha = {backdrop_opacity:.2f}f" in android_backdrop and
+            f"palette.background.copy(alpha = {scrim_top:.2f}f)" in android_backdrop and
+            f"palette.background.copy(alpha = {scrim_bottom:.2f}f)" in android_backdrop,
+            "Android onboarding backdrop must be one full-bleed photo behind a single scrim")
+    require("slides[page].backdropName" in ios_backdrop and
+            f".opacity({backdrop_opacity:.2f})" in ios_backdrop and
+            f"palette.background.opacity({scrim_top:.2f})" in ios_backdrop and
+            f"palette.background.opacity({scrim_bottom:.2f})" in ios_backdrop,
+            "iOS onboarding backdrop must be one full-bleed photo behind a single scrim")
+    for retired in ("OnboardingPhotoGrid", "OnboardingPillarWall", "onboardingPillarIndexes", "OnboardingFullBleed"):
+        require(retired not in android, f"Android onboarding must not reintroduce the {retired} multi-image layer")
+    for retired in ("OfficialSitePhotoGrid", "pillarWall", "pillarImageIndexes"):
+        require(retired not in ios, f"iOS onboarding must not reintroduce the {retired} multi-image layer")
+    for retired in ("onboarding-photo-grid", "onboarding-photo-band", "onboarding-photo-strip", "home-hero-collage"):
+        require(retired not in read_text(WEB_CSS) and retired not in read_text(WEB_ONBOARDING) and
+                retired not in read_text(WEB_HOME),
+                f"PWA must not reintroduce the {retired} multi-image layer")
 
-    backdrop_grid = layout["backdrop_grid"]
-    rows, columns = backdrop_grid["rows"], backdrop_grid["columns"]
-    require(re.search(r"repeat\s*\(\s*" + str(rows) + r"\s*\)\s*\{\s*row\s*->", android_wallpaper) is not None and
-            re.search(r"repeat\s*\(\s*" + str(columns) + r"\s*\)\s*\{\s*column\s*->", android_wallpaper) is not None and
-            "painterResource(onboardingGridImages[imageIndex])" in android_wallpaper and
-            "ContentScale.Crop" in android_wallpaper and ".fillMaxHeight()" in android_wallpaper,
-            "Android 5x3 wallpaper grid must crop tiles from bundled onboarding photos")
-    require(f"private let rows = {rows}" in ios_wallpaper and
-            f"private let columns = {columns}" in ios_wallpaper and
-            "ForEach(0..<rows" in ios_wallpaper and "ForEach(0..<columns" in ios_wallpaper and
-            "Image(OfficialSiteImages.collage[index])" in ios_wallpaper and
-            ".scaledToFill()" in ios_wallpaper and ".clipped()" in ios_wallpaper,
-            "iOS 5x3 wallpaper grid must crop tiles from bundled catalog photos")
+    backdrop_keys = onboarding["backdrop_images"]
+    require(len(backdrop_keys) == len(onboarding["slide_images"]),
+            "every onboarding slide needs exactly one backdrop photo")
+    android_backdrop_refs = re.findall(r"backdropRes = OfficialSiteImages\.([A-Z_]+)", android)
+    ios_backdrop_refs = re.findall(r"backdropName: OfficialSiteImages\.([A-Za-z][A-Za-z0-9]*)", ios)
+    require(android_backdrop_refs == [images_by_key[key]["android_symbol"] for key in backdrop_keys],
+            "Android onboarding backdrop photos drifted from the shared matrix")
+    require(ios_backdrop_refs == [images_by_key[key]["ios_symbol"] for key in backdrop_keys],
+            "iOS onboarding backdrop photos drifted from the shared matrix")
+    for key in backdrop_keys + onboarding["slide_images"]:
+        require(key in expected_catalog_order, f"onboarding photo {key} must come from the official catalog")
 
-    wallpaper_opacity = layout["wallpaper_grid_opacity"]
-    require(f"OfficialSitePhotoGrid(opacity: {wallpaper_opacity:.2f})" in ios_backdrop,
-            "iOS onboarding wallpaper must render the local photo grid")
-    require("OnboardingPhotoGrid(" in android_backdrop and
-            f"opacity = {wallpaper_opacity:.2f}f" in android_backdrop,
-            "Android onboarding wallpaper must render the local photo grid")
+    # Showcase: exactly one captioned photo tile per slide.
+    height = layout["showcase_height_dp"]
+    radius = layout["showcase_corner_radius_dp"]
+    require("slide.imageRes" in android_showcase and "slide.caption" in android_showcase and
+            f"cornerRadius = {radius}.dp" in android_showcase and f".height({height}.dp)" in android_showcase and
+            "OnboardingTile(" in android_showcase,
+            "Android onboarding showcase must be a single captioned photo tile")
+    require("slide.imageName" in ios_artwork and "slide.caption" in ios_artwork and
+            f"cornerRadius: {radius}" in ios_artwork and f".frame(height: {height})" in ios_artwork,
+            "iOS onboarding showcase must be a single captioned photo tile")
 
-    full_bleed_alpha = layout["full_bleed_background_alpha"]
-    filmstrip_default = layout["filmstrip_default_index"]
-    require("1 -> OnboardingFullBleed(" in android_backdrop and
-            f"opacity = {full_bleed_alpha:.2f}f" in android_backdrop and
-            "onboardingGridImages[filmstripImageIndex]" in android_backdrop and
-            f"mutableIntStateOf({filmstrip_default})" in android,
-            "Android full-bleed backdrop must be driven by the filmstrip selection")
-    require("Crossfade(" in android_full_bleed and "painterResource(current)" in android_full_bleed,
-            "Android full-bleed backdrop must crossfade between selected photos")
-    require("Image(OfficialSiteImages.collage[filmstripIndex])" in ios_backdrop and
-            f".opacity({full_bleed_alpha:.2f})" in ios_backdrop and
-            f"@State private var filmstripIndex = {filmstrip_default}" in ios and
-            ".id(filmstripIndex)" in ios and ".transition(.opacity)" in ios,
-            "iOS full-bleed backdrop must be driven by the filmstrip selection")
+    captions = onboarding["slide_captions"]
+    require(re.findall(r'caption = "([^"]+)"', android) == captions,
+            "Android onboarding captions drifted from the shared matrix")
+    require(re.findall(r'caption: "([^"]+)"', ios) == captions,
+            "iOS onboarding captions drifted from the shared matrix")
+    require("captionPulse = true" in android and "captionPulse: true" in ios,
+            "the live-alert slide must keep its pulsing caption on both platforms")
 
-    pillar_opacity = layout["pillar_wall_opacity"]
-    require(f"else -> OnboardingPillarWall(page = backgroundPage, opacity = {pillar_opacity:.2f}f)" in android_backdrop and
-            "onboardingPillarIndexes(page)" in android_pillar_wall and
-            "painterResource(onboardingGridImages[photo])" in android_pillar_wall,
-            "onboarding pillar wall must render bundled photos side by side, never stacked")
-    require(f"pillarWall(page: page, opacity: {pillar_opacity:.2f})" in ios_backdrop and
-            ".opacity(opacity)" in ios_backdrop,
-            "iOS onboarding pillar wall must render bundled photos side by side, never stacked")
-    for page_key, indexes in layout["pillar_pages"].items():
-        android_token = f"{page_key} -> listOf({', '.join(str(i) for i in indexes)})"
-        ios_token = f"case {page_key}: return [{', '.join(str(i) for i in indexes)}]"
-        require(android_token in android_pillar_indexes and ios_token in ios_backdrop,
-                f"pillar wall photo set drifted for page {page_key}")
-
-    slots = layout["mosaic_slots"]
-    require(f"mutableStateListOf({', '.join(str(s) for s in slots)})" in android_mosaic and
-            "A GLOBAL COMMUNITY" in android_mosaic and
-            "TAP ANY PHOTO" in android_mosaic and
-            "(mosaicSlots[0] + 1) % onboardingGridImages.size" in android_mosaic,
-            "Android first-slide mosaic must invite tapping photos to cycle them")
-    require(f"mosaicSlots: [Int] = [{', '.join(str(s) for s in slots)}]" in ios and
-            "A GLOBAL COMMUNITY" in ios_mosaic and
-            "TAP ANY PHOTO" in ios_mosaic and
-            "(mosaicSlots[0] + 1) % OfficialSiteImages.collage.count" in ios_mosaic,
-            "iOS first-slide mosaic must invite tapping photos to cycle them")
-
-    require("FULL-BLEED PHOTO · ${selectionIndex + 1}" in android_filmstrip and
-            "onboardingGridImages.size" in android_filmstrip and
-            "horizontalScroll" in android_filmstrip and
-            "animateDpAsState(" in android_filmstrip,
-            "Android filmstrip must grow the selected photo and drive the backdrop")
-    require("FULL-BLEED PHOTO · \\(filmstripIndex + 1)" in ios_filmstrip and
-            "ScrollView(.horizontal" in ios_filmstrip and
-            "filmstripIndex = index" in ios_filmstrip,
-            "iOS filmstrip must grow the selected photo and drive the backdrop")
-
-    deck_keys = layout["deck_photos"]
-    expected_deck_symbols = [images_by_key[key]["android_symbol"] for key in deck_keys]
+    # Slide image sequence: still the documented cross-platform order.
     android_slide_symbols = re.findall(r"\bimageRes\s*=\s*OfficialSiteImages\.([A-Z_]+)", android_slides)
+    ios_slide_symbols = re.findall(r"imageName\s*:\s*OfficialSiteImages\.([A-Za-z][A-Za-z0-9]*)", ios)
+    expected_android = [images_by_key[key]["android_symbol"] for key in onboarding["slide_images"]]
+    expected_ios = [images_by_key[key]["ios_symbol"] for key in onboarding["slide_images"]]
+    require(android_slide_symbols == expected_android,
+            "Android onboarding image sequence differs from the documented cross-platform sequence")
+    require(ios_slide_symbols == expected_ios,
+            "iOS onboarding image sequence differs from the documented cross-platform sequence")
     require(len(android_slide_symbols) > 2 and android_slide_symbols[2] == "FIELDWORK",
             "Android slide 3 must bind FIELDWORK in the onboarding slide list")
-    require(f"listOf(slide.imageRes, OfficialSiteImages.{expected_deck_symbols[1]}, OfficialSiteImages.{expected_deck_symbols[2]})" in android_deck and
-            "mutableIntStateOf(0)" in android_deck and
-            "deckPhotos[deckIndex]" in android_deck and
-            "role = Role.Button" in android_deck and
-            "FIELD NOTES · LOCAL ACTION" in android_deck,
-            "Android deck must offer three bundled photos with a featured viewer and round swap thumbs")
-    require("@State private var deckIndex = 0" in ios and
-            f"deckPhotos = [slide.imageName, OfficialSiteImages.{images_by_key[deck_keys[1]]['ios_symbol']}, OfficialSiteImages.{images_by_key[deck_keys[2]]['ios_symbol']}]" in ios_deck and
-            "photoTile(deckPhotos[deckIndex]" in ios_deck and
-            "deckIndex = index" in ios_deck and
-            "FIELD NOTES · LOCAL ACTION" in ios_deck,
-            "iOS deck must offer three bundled photos with a featured viewer and round swap thumbs")
 
-    spotlight_row_keys = layout["spotlight_row"]
-    banner_index = grid_keys.index(layout["spotlight_banner"])
-    square_index = grid_keys.index(spotlight_row_keys[0])
-    pill_index = grid_keys.index(spotlight_row_keys[1])
-    require(f"mutableIntStateOf({banner_index})" in android_spotlight and
-            f"mutableIntStateOf({square_index})" in android_spotlight and
-            f"mutableIntStateOf({pill_index})" in android_spotlight and
-            "STAY IN THE LOOP" in android_spotlight and
-            "pulse = true" in android_spotlight and
-            "gradientOverlay = true" in android_spotlight,
-            "Android spotlight must open with the banner photo and a pulsing live chip")
-    require(f"spotlightBannerIndex = {banner_index}" in ios and
-            f"spotlightSquareIndex = {square_index}" in ios and
-            f"spotlightPillIndex = {pill_index}" in ios and
-            "STAY IN THE LOOP" in ios_spotlight and
-            "pulse: true" in ios_spotlight and
-            "gradientOverlay: true" in ios_spotlight,
-            "iOS spotlight must open with the banner photo and a pulsing live chip")
+    require("ContentScale.Crop" in android and ".scaledToFill()" in ios,
+            "both onboarding photo canvases must crop their locally bundled photos")
+    require("contentDescription = slide.imageDescription" in android and
+            ".accessibilityLabel(slide.imageDescription)" in ios,
+            "onboarding photo showcases need accessible descriptions on both platforms")
+    require("Brush.verticalGradient" in android and "LinearGradient(" in ios,
+            "onboarding photo panels need text-legibility gradients on both platforms")
+    require("Crossfade(" in android_backdrop and "painterResource(slides[backgroundPage].backdropRes)" in android_backdrop,
+            "Android onboarding backdrop must crossfade between the per-slide photos")
+    require(".transition(.opacity)" in ios_backdrop and ".id(page)" in ios_backdrop,
+            "iOS onboarding backdrop must crossfade between the per-slide photos")
 
-    require("pulse: Boolean = false" in android_chip and
-            "infiniteRepeatable" in android_chip and
+    # The showcase tile is decorative chrome around a single photo.
+    require("contentDescription = null" in android_tile and "border(1.dp," in android_tile,
+            "Android onboarding photo tile must stay decorative and carry a hairline")
+    require(".strokeBorder(Color.white.opacity(0.35), lineWidth: 1)" in ios_tile,
+            "iOS onboarding photo tile must stay decorative and carry a hairline")
+    require("Button" not in ios_tile and "clickable" not in android_tile,
+            "onboarding photo tiles must not pretend to be tappable once they hold a single photo")
+    require("pulse: Boolean = false" in android_chip and "infiniteRepeatable" in android_chip and
             "palette.eco" in android_chip,
             "Android caption chip needs the optional live pulse dot")
-    require("pulse: Bool = false" in ios_chip and
-            "PulseDot()" in ios_chip,
+    require("pulse: Bool = false" in ios_chip and "PulseDot()" in ios_chip,
             "iOS caption chip needs the optional live pulse dot")
-
-    require("Crossfade(" in android_tile and
-            "rememberPressInteraction()" in android_tile and
-            "egPressScale(interaction)" in android_tile and
-            ".border(" in android_tile and
-            "contentScale = ContentScale.Crop" in android_tile,
-            "Android photo tile must crossfade, press-scale, and carry a hairline")
-    require(".buttonStyle(PressableStyle())" in ios_tile and
-            ".id(asset)" in ios_tile and
-            ".clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))" in ios_tile and
-            ".strokeBorder(borderColor, lineWidth: borderWidth)" in ios_tile,
-            "iOS photo tile must crossfade, press-scale, and carry a hairline")
-
 
     android_progress = source_section(
         android, "slides.forEachIndexed { index, _ ->", "\n/** Exposed for tests", "Android clickable progress indicators")

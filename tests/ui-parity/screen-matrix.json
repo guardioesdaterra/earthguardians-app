@@ -10,32 +10,27 @@
       "fieldwork",
       "climate_action"
     ],
-    "photo_grid_images": [
-      "community",
-      "benin_action",
+    "backdrop_images": [
       "leaves",
-      "fieldwork",
       "youth_gathering",
-      "climate_action"
+      "community",
+      "fieldwork"
     ],
-    "collage_opacity": {
-      "default_background": 0.075,
-      "home_hero": 0.15
-    },
-    "home_hero_photo_alpha": 0.46,
+    "slide_captions": [
+      "A GLOBAL COMMUNITY",
+      "YOUTH IN ACTION",
+      "FIELD NOTES · LOCAL ACTION",
+      "STAY IN THE LOOP"
+    ],
     "photo_layouts": {
-      "mosaic_slots": [0, 3, 4, 1],
-      "deck_photos": ["fieldwork", "youth_gathering", "community"],
-      "spotlight_row": ["leaves", "youth_gathering"],
-      "spotlight_banner": "climate_action",
-      "filmstrip_default_index": 1,
-      "pillar_pages": { "2": [3, 4, 2], "3": [5, 1, 0] },
-      "backdrop_grid": { "rows": 5, "columns": 3 },
-      "progress_hit_area_dp": 36,
-      "wallpaper_grid_opacity": 0.28,
-      "pillar_wall_opacity": 0.1,
-      "full_bleed_background_alpha": 0.65
+      "showcase_height_dp": 140,
+      "showcase_corner_radius_dp": 26,
+      "backdrop_opacity": 0.65,
+      "backdrop_scrim_top": 0.62,
+      "backdrop_scrim_bottom": 0.82,
+      "progress_hit_area_dp": 36
     },
+    "home_hero_photo_alpha": 1.0,
     "direct_page_argument": {
       "route": "section?u=https%3A%2F%2Fwww.earthguardians.org%2Fdonate",
       "expected_text": "Donate"
@@ -57,13 +52,41 @@
     }
   },
   "native_maps": {
-    "picker_options": ["Crews", "Project Grants", "All Maps"],
+    "picker_options": [
+      "Crews",
+      "Project Grants",
+      "All Maps"
+    ],
     "public_grants_path": "project-grants",
     "private_manager_path": "eg-grants",
     "datasets": {
-      "crew-regions": ["id", "region", "latitude", "longitude", "activeCrews", "inactiveCrews", "totalMembers", "countries"],
-      "crew-locations": ["name", "country", "city", "region", "status", "lat", "lng"],
-      "project-grants": ["project_title", "country_province", "latitude", "longitude", "direct_beneficiaries", "indirect_beneficiaries"]
+      "crew-regions": [
+        "id",
+        "region",
+        "latitude",
+        "longitude",
+        "activeCrews",
+        "inactiveCrews",
+        "totalMembers",
+        "countries"
+      ],
+      "crew-locations": [
+        "name",
+        "country",
+        "city",
+        "region",
+        "status",
+        "lat",
+        "lng"
+      ],
+      "project-grants": [
+        "project_title",
+        "country_province",
+        "latitude",
+        "longitude",
+        "direct_beneficiaries",
+        "indirect_beneficiaries"
+      ]
     }
   },
   "official_images": [

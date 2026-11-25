@@ -185,9 +185,6 @@ struct HomeScreen: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 300)
                 .clipped()
-                .opacity(0.46)
-
-            OfficialSitePhotoCollage(page: 1, opacity: 0.15)
 
             LinearGradient(
                 colors: [.clear, .black.opacity(0.24), .black.opacity(0.92)],

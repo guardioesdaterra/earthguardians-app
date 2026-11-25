@@ -9,8 +9,6 @@ enum OfficialSiteImages {
     static let youthGathering = "EGHomeYouthGathering"
     static let climateAction = "EGHomeClimateAction"
 
-    static let collage = [community, beninAction, leaves, fieldwork, youthGathering, climateAction]
-
     static func featuredEvent(for url: String) -> String? {
         switch URL(string: url)?.path {
         case "/events/2025/6/14/project-grant-summit": return "EGEventProjectGrantSummit"
